@@ -44,6 +44,7 @@ const projectActionsDialog = document.querySelector("#project-actions-dialog");
 const recoveryDialog = document.querySelector("#recovery-dialog");
 const releaseDateDialog = document.querySelector("#release-date-dialog");
 const songDetailsDialog = document.querySelector("#song-details-dialog");
+const artworkViewerDialog = document.querySelector("#artwork-viewer-dialog");
 const toast = document.querySelector("#toast");
 const authGate = document.querySelector("#auth-gate");
 let user = null;
@@ -143,7 +144,9 @@ function renderReleaseChecklist() {
   ).join("");
   const image = document.querySelector("#release-artwork-image");
   const placeholder = document.querySelector("#release-artwork-placeholder");
+  const viewButton = document.querySelector("#view-release-artwork");
   const hasArtwork = Boolean(currentProject.artwork_path);
+  viewButton.hidden = !hasArtwork;
   document.querySelector("#remove-release-artwork").hidden = !hasArtwork;
   if (!hasArtwork) {
     image.hidden = true;
@@ -172,6 +175,7 @@ async function refreshArtworkPreview() {
   image.dataset.projectId = projectId;
   image.hidden = false;
   placeholder.hidden = true;
+  document.querySelector("#artwork-original-link").href = data.signedUrl;
 }
 
 function renderBands() {
@@ -827,6 +831,7 @@ document.querySelector("#release-artwork-input").addEventListener("change", asyn
   const project = currentProject;
   const oldPath = project.artwork_path;
   const path = `${project.id}/${crypto.randomUUID()}.${allowedTypes[file.type]}`;
+  let uploadStage = "uploading the image";
   artworkBusy = true;
   try {
     const { error: uploadError } = await supabase.storage.from("release-artwork").upload(path, file, {
@@ -836,6 +841,7 @@ document.querySelector("#release-artwork-input").addEventListener("change", asyn
     });
     if (uploadError) throw uploadError;
     const checklist = { ...Object.fromEntries(releaseChecklistItems.map(([key]) => [key, false])), ...(project.release_checklist || {}), artwork: true };
+    uploadStage = "saving the artwork to the project";
     const { error: updateError } = await supabase.from("projects").update({ artwork_path: path, release_checklist: checklist }).eq("id", project.id);
     if (updateError) {
       await supabase.storage.from("release-artwork").remove([path]);
@@ -850,7 +856,8 @@ document.querySelector("#release-artwork-input").addEventListener("change", asyn
     if (oldPath) await supabase.storage.from("release-artwork").remove([oldPath]);
     showToast("Release artwork uploaded.");
   } catch (error) {
-    showError("Could not upload release artwork.", error);
+    const details = error?.message || "Please try again.";
+    showError(`Could not finish ${uploadStage}: ${details}`, error);
   } finally {
     artworkBusy = false;
     input.value = "";
@@ -878,6 +885,12 @@ document.querySelector("#remove-release-artwork").addEventListener("click", asyn
   } finally {
     artworkBusy = false;
   }
+});
+document.querySelector("#view-release-artwork").addEventListener("click", () => {
+  const image = document.querySelector("#release-artwork-image");
+  if (image.hidden || !image.src) return;
+  document.querySelector("#artwork-viewer-image").src = image.src;
+  artworkViewerDialog.showModal();
 });
 function openSongDetails(songId) {
   const song = board.songs.find((item) => item.id === songId);

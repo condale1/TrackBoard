@@ -21,7 +21,7 @@ create policy "Band members can view release artwork" on storage.objects
     bucket_id = 'release-artwork'
     and exists (
       select 1 from public.projects as project
-      where project.id::text = (storage.foldername(name))[1]
+      where project.id::text = (storage.foldername(storage.objects.name))[1]
         and public.is_project_member(project.id)
     )
   );
@@ -31,7 +31,7 @@ create policy "Band members can upload release artwork" on storage.objects
     bucket_id = 'release-artwork'
     and exists (
       select 1 from public.projects as project
-      where project.id::text = (storage.foldername(name))[1]
+      where project.id::text = (storage.foldername(storage.objects.name))[1]
         and public.is_project_member(project.id)
     )
   );
@@ -41,14 +41,14 @@ create policy "Band members can replace release artwork" on storage.objects
     bucket_id = 'release-artwork'
     and exists (
       select 1 from public.projects as project
-      where project.id::text = (storage.foldername(name))[1]
+      where project.id::text = (storage.foldername(storage.objects.name))[1]
         and public.is_project_member(project.id)
     )
   ) with check (
     bucket_id = 'release-artwork'
     and exists (
       select 1 from public.projects as project
-      where project.id::text = (storage.foldername(name))[1]
+      where project.id::text = (storage.foldername(storage.objects.name))[1]
         and public.is_project_member(project.id)
     )
   );
@@ -58,7 +58,7 @@ create policy "Band members can remove release artwork" on storage.objects
     bucket_id = 'release-artwork'
     and exists (
       select 1 from public.projects as project
-      where project.id::text = (storage.foldername(name))[1]
+      where project.id::text = (storage.foldername(storage.objects.name))[1]
         and public.is_project_member(project.id)
     )
   );
