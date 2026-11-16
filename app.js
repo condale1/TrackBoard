@@ -8,8 +8,21 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 const defaultInstruments = ["Drums", "Bass", "Guitar", "Keys", "Lead vocal", "Backing vocals"];
-const productionStatusOrder = ["not_started", "in_progress", "done"];
-const productionStatusLabels = { not_started: "To do", in_progress: "In progress", done: "Done" };
+const productionStatusOrder = ["not_started", "in_progress", "ready_for_review", "changes_requested", "approved"];
+const productionStatusLabels = {
+  not_started: "To do",
+  in_progress: "In progress",
+  ready_for_review: "Review",
+  changes_requested: "Changes req.",
+  approved: "Approved",
+};
+const productionStatusNames = {
+  not_started: "To do",
+  in_progress: "In progress",
+  ready_for_review: "Ready for review",
+  changes_requested: "Changes requested",
+  approved: "Approved",
+};
 const emptyBoard = { project: "", instruments: [], songs: [] };
 
 const boardHead = document.querySelector("#board-head");
@@ -22,6 +35,7 @@ const bandDialog = document.querySelector("#band-dialog");
 const projectActionsDialog = document.querySelector("#project-actions-dialog");
 const recoveryDialog = document.querySelector("#recovery-dialog");
 const releaseDateDialog = document.querySelector("#release-date-dialog");
+const songDetailsDialog = document.querySelector("#song-details-dialog");
 const toast = document.querySelector("#toast");
 const authGate = document.querySelector("#auth-gate");
 let user = null;
@@ -197,7 +211,7 @@ async function loadBoard() {
   const projectId = currentProject.id;
   const [instrumentResult, songResult] = await Promise.all([
     supabase.from("instruments").select("id, name, position").eq("project_id", projectId).order("position"),
-    supabase.from("songs").select("id, name, position, mix_status, master_status").eq("project_id", projectId).order("position"),
+    supabase.from("songs").select("id, name, position, mix_status, master_status, recording_assignee, recording_due_date, mix_assignee, mix_due_date, master_assignee, master_due_date, notes, reference_url, mix_feedback, master_feedback").eq("project_id", projectId).order("position"),
   ]);
   if (instrumentResult.error) throw instrumentResult.error;
   if (songResult.error) throw songResult.error;
@@ -265,9 +279,9 @@ function renderBoard() {
       const status = song[field] || "not_started";
       const statusLabel = productionStatusLabels[status] || productionStatusLabels.not_started;
       const nextStatus = productionStatusOrder[(productionStatusOrder.indexOf(status) + 1) % productionStatusOrder.length];
-      return `<button class="production-status status-${status}" type="button" data-song-status="${field}" data-song-id="${song.id}" aria-label="${label} status: ${statusLabel}. Activate to change to ${productionStatusLabels[nextStatus]}." title="${label}: ${statusLabel}"><span>${label}</span><strong>${statusLabel}</strong></button>`;
+      return `<button class="production-status status-${status}" type="button" data-song-status="${field}" data-song-id="${song.id}" aria-label="${label} status: ${productionStatusNames[status] || productionStatusNames.not_started}. Activate to change to ${productionStatusNames[nextStatus]}." title="${label}: ${productionStatusNames[status] || productionStatusNames.not_started}"><span>${label}</span><strong>${statusLabel}</strong></button>`;
     };
-    return `<tr><td class="song-cell"><div class="song-title" title="${escapeHtml(song.name)}">${escapeHtml(song.name)}</div><div class="song-meta"><span class="song-index">${String(songIndex + 1).padStart(2, "0")}</span><span>·</span><span>${completed}/${requiredCount} required</span><span class="song-badge${isDone ? " done" : ""}">${badge}</span></div><div class="production-statuses">${productionStatus("mix_status", "Mix")}${productionStatus("master_status", "Master")}</div></td>${cells}<td class="part-cell">${removeButton}</td></tr>`;
+    return `<tr><td class="song-cell"><button class="song-title song-title-button" type="button" data-song-details="${song.id}" aria-label="Open details for ${escapeHtml(song.name)}" title="Open song details">${escapeHtml(song.name)}</button><div class="song-meta"><span class="song-index">${String(songIndex + 1).padStart(2, "0")}</span><span>·</span><span>${completed}/${requiredCount} required</span><span class="song-badge${isDone ? " done" : ""}">${badge}</span></div><div class="production-statuses">${productionStatus("mix_status", "Mix")}${productionStatus("master_status", "Master")}</div></td>${cells}<td class="part-cell">${removeButton}</td></tr>`;
   }).join("");
 
   const totalParts = board.songs.reduce((total, song) => total + song.parts.filter((part) => part.required).length, 0);
@@ -727,6 +741,54 @@ document.querySelector("#clear-release-date").addEventListener("click", async ()
     showError("Could not clear the release date.", error);
   }
 });
+function openSongDetails(songId) {
+  const song = board.songs.find((item) => item.id === songId);
+  if (!song) return;
+  document.querySelector("#song-details-title").textContent = song.name;
+  document.querySelector("#recording-assignee").value = song.recording_assignee || "";
+  document.querySelector("#recording-due-date").value = song.recording_due_date || "";
+  document.querySelector("#mix-assignee").value = song.mix_assignee || "";
+  document.querySelector("#mix-due-date").value = song.mix_due_date || "";
+  document.querySelector("#master-assignee").value = song.master_assignee || "";
+  document.querySelector("#master-due-date").value = song.master_due_date || "";
+  document.querySelector("#mix-feedback").value = song.mix_feedback || "";
+  document.querySelector("#master-feedback").value = song.master_feedback || "";
+  document.querySelector("#song-reference-url").value = song.reference_url || "";
+  document.querySelector("#song-notes").value = song.notes || "";
+  document.querySelector("#song-details-form").dataset.songId = song.id;
+  songDetailsDialog.showModal();
+}
+document.querySelector("#song-details-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const songId = form.dataset.songId;
+  if (!songId) return;
+  const fields = {
+    recording_assignee: "#recording-assignee",
+    recording_due_date: "#recording-due-date",
+    mix_assignee: "#mix-assignee",
+    mix_due_date: "#mix-due-date",
+    master_assignee: "#master-assignee",
+    master_due_date: "#master-due-date",
+    mix_feedback: "#mix-feedback",
+    master_feedback: "#master-feedback",
+    reference_url: "#song-reference-url",
+    notes: "#song-notes",
+  };
+  const updates = Object.fromEntries(Object.entries(fields).map(([column, selector]) => {
+    const value = document.querySelector(selector).value.trim();
+    return [column, value || null];
+  }));
+  try {
+    const { error } = await supabase.from("songs").update(updates).eq("id", songId);
+    if (error) throw error;
+    await loadBoard();
+    songDetailsDialog.close();
+    showToast("Song details saved.");
+  } catch (error) {
+    showError("Could not save song details.", error);
+  }
+});
 document.querySelector("#add-song").addEventListener("click", () => {
   songDialog.showModal();
   document.querySelector("#song-name").focus();
@@ -773,6 +835,11 @@ document.querySelector("#instrument-form").addEventListener("submit", async (eve
   }
 });
 boardBody.addEventListener("click", async (event) => {
+  const detailsButton = event.target.closest("[data-song-details]");
+  if (detailsButton) {
+    openSongDetails(detailsButton.dataset.songDetails);
+    return;
+  }
   const statusButton = event.target.closest("[data-song-status]");
   if (statusButton && currentProject) {
     const field = statusButton.dataset.songStatus;

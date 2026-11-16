@@ -160,6 +160,23 @@
         <div class="dialog-actions"><button class="cancel-button" id="clear-release-date" type="button">Clear date</button><button class="add-song-button" type="submit">Save date</button></div>
       </form>
     </dialog>
+    <dialog class="app-dialog song-details-dialog" id="song-details-dialog">
+      <form method="dialog" id="song-details-form">
+        <div class="dialog-top"><span class="dialog-kicker">TRACK WORKFLOW</span><button class="dialog-close" type="button" data-close aria-label="Close dialog">×</button></div>
+        <h2 id="song-details-title">Song details</h2>
+        <p>Keep owners, deadlines, references, and review notes with this track.</p>
+        <div class="workflow-stages">
+          <section class="workflow-stage"><h3>Recording</h3><label>Owner<input id="recording-assignee" maxlength="80" placeholder="Band member name" /></label><label>Due date<input id="recording-due-date" type="date" /></label></section>
+          <section class="workflow-stage"><h3>Mix</h3><label>Owner<input id="mix-assignee" maxlength="80" placeholder="Band member name" /></label><label>Due date<input id="mix-due-date" type="date" /></label><label>Review feedback<textarea id="mix-feedback" rows="2" maxlength="2000" placeholder="Notes for the mix revision…"></textarea></label></section>
+          <section class="workflow-stage"><h3>Master</h3><label>Owner<input id="master-assignee" maxlength="80" placeholder="Band member name" /></label><label>Due date<input id="master-due-date" type="date" /></label><label>Review feedback<textarea id="master-feedback" rows="2" maxlength="2000" placeholder="Notes for the master revision…"></textarea></label></section>
+        </div>
+        <label class="field-label" for="song-reference-url">REFERENCE LINK</label>
+        <input id="song-reference-url" type="url" maxlength="500" placeholder="https://…" />
+        <label class="field-label workflow-notes-label" for="song-notes">SONG NOTES</label>
+        <textarea id="song-notes" rows="3" maxlength="4000" placeholder="Arrangement, session, or release notes…"></textarea>
+        <div class="dialog-actions"><button class="add-song-button" type="submit">Save details</button></div>
+      </form>
+    </dialog>
     <dialog class="app-dialog" id="recovery-dialog">
       <form method="dialog" id="recovery-form">
         <div class="dialog-top"><span class="dialog-kicker">ACCOUNT SECURITY</span></div>
