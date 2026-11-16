@@ -170,6 +170,12 @@ h1 { display: flex; align-items: center; gap: 10px; margin: 13px 0 4px; font: 70
 .workflow-stages { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; margin: 0 0 18px; }
 .workflow-stage { min-width: 0; display: grid; align-content: start; gap: 9px; padding: 10px; border: 1px solid #383a31; border-radius: 6px; background: #20211b; }
 .workflow-stage h3 { margin: 0 0 1px; color: #d9dfc8; font: 600 12px var(--display); }
+.instrument-task { padding: 8px 0; border-top: 1px solid #34362e; }
+.instrument-task h4 { margin: 0 0 7px; color: #c9d2b8; font: 500 10px var(--sans); }
+.instrument-task-assignee { margin: 0 0 6px !important; color: #8c9186 !important; font-size: 9px !important; }
+.instrument-task-assignee strong { color: #536e60; font-weight: 600; }
+.instrument-task-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
+.no-instrument-tasks { margin: 0 !important; font-size: 10px !important; }
 .workflow-stage label { display: grid; gap: 5px; color: #a4a597; font: 8px var(--mono); letter-spacing: .4px; }
 .workflow-stage input, .workflow-stage textarea, .song-details-dialog > form > textarea { min-width: 0; width: 100%; padding: 8px; border: 1px solid #3c3d33; border-radius: 5px; color: #efeee5; background: #141510; font: 10px var(--sans); letter-spacing: normal; }
 .workflow-stage input { height: 36px; }
@@ -269,6 +275,13 @@ button:disabled { cursor: wait; opacity: .65; }
 .band-actions button { flex: 1; white-space: nowrap; }
 .instrument-chip { justify-content: space-between; min-width: min(100%, 220px); }
 .instrument-chip > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.instrument-list { display: grid; gap: 8px; }
+.instrument-chip { width: 100%; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; align-items: center; }
+.instrument-chip-name { min-width: 0; }
+.instrument-assignee-label { grid-column: 1 / -1; display: grid; gap: 4px; color: #8f9286; font: 8px var(--mono); }
+.instrument-assignee-label input { width: 100%; height: 34px; padding: 0 8px; border: 1px solid #3c3d33; border-radius: 4px; color: #e5e5d9; background: #171813; font: 10px var(--sans); }
+.instrument-assignee-label input:focus { border-color: #b8cc75; outline: 2px solid #d3ec7a16; }
+.instrument-task-fields { grid-template-columns: minmax(0, 1fr); }
 .presence { gap: 7px; color: #a4bd72; font: 9px var(--mono); letter-spacing: .5px; }
 .presence .live-dot { display: block; }
 .project-subtitle { max-width: 460px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

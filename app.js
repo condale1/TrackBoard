@@ -210,8 +210,8 @@ async function loadBoard() {
   if (!currentProject) return;
   const projectId = currentProject.id;
   const [instrumentResult, songResult] = await Promise.all([
-    supabase.from("instruments").select("id, name, position").eq("project_id", projectId).order("position"),
-    supabase.from("songs").select("id, name, position, mix_status, master_status, recording_assignee, recording_due_date, mix_assignee, mix_due_date, master_assignee, master_due_date, notes, reference_url, mix_feedback, master_feedback").eq("project_id", projectId).order("position"),
+    supabase.from("instruments").select("id, name, position, assigned_to").eq("project_id", projectId).order("position"),
+    supabase.from("songs").select("id, name, position, mix_status, master_status, mix_assignee, mix_due_date, master_assignee, master_due_date, notes, reference_url, mix_feedback, master_feedback").eq("project_id", projectId).order("position"),
   ]);
   if (instrumentResult.error) throw instrumentResult.error;
   if (songResult.error) throw songResult.error;
@@ -220,13 +220,13 @@ async function loadBoard() {
   let parts = [];
   if (songs.length) {
     let result = await supabase.from("song_parts")
-      .select("song_id, instrument_id, done, required")
+      .select("song_id, instrument_id, done, required, due_date")
       .in("song_id", songs.map((song) => song.id));
     if (result.error && isMissingRequiredColumn(result.error)) {
       optionalPartsSupported = false;
       document.querySelector("#schema-warning").hidden = false;
       result = await supabase.from("song_parts")
-        .select("song_id, instrument_id, done")
+        .select("song_id, instrument_id, done, due_date")
         .in("song_id", songs.map((song) => song.id));
     } else if (result.error) {
       throw result.error;
@@ -245,13 +245,14 @@ async function loadBoard() {
   const partIndex = new Map(parts.map((part) => [`${part.song_id}:${part.instrument_id}`, {
     done: part.done,
     required: part.required,
+    due_date: part.due_date,
   }]));
   board = {
     project: currentProject.name,
     instruments: instrumentResult.data,
     songs: songs.map((song) => ({
       ...song,
-      parts: instrumentResult.data.map((instrument) => partIndex.get(`${song.id}:${instrument.id}`) ?? { done: false, required: true }),
+      parts: instrumentResult.data.map((instrument) => partIndex.get(`${song.id}:${instrument.id}`) ?? { done: false, required: true, due_date: null }),
     })),
   };
   renderBoard();
@@ -305,7 +306,7 @@ function renderBoard() {
 function renderInstrumentList() {
   const list = document.querySelector("#instrument-list");
   list.innerHTML = board.instruments.map((instrument, index) =>
-    `<span class="instrument-chip"><span>${escapeHtml(instrument.name)}</span><span class="instrument-actions"><button class="move-instrument" type="button" aria-label="Move ${escapeHtml(instrument.name)} earlier" title="Move earlier" data-move-instrument="${index}" data-direction="-1"${index === 0 ? " disabled" : ""}>↑</button><button class="move-instrument" type="button" aria-label="Move ${escapeHtml(instrument.name)} later" title="Move later" data-move-instrument="${index}" data-direction="1"${index === board.instruments.length - 1 ? " disabled" : ""}>↓</button>${currentProject?.role === "owner" ? `<button class="remove-instrument" type="button" aria-label="Remove ${escapeHtml(instrument.name)}" data-remove-instrument="${index}">×</button>` : ""}</span></span>`,
+    `<span class="instrument-chip"><span class="instrument-chip-name">${escapeHtml(instrument.name)}</span><label class="instrument-assignee-label">Assigned to<input type="text" maxlength="80" placeholder="Band member name" value="${escapeHtml(instrument.assigned_to || "")}" data-instrument-assignee="${instrument.id}" /></label><span class="instrument-actions"><button class="move-instrument" type="button" aria-label="Move ${escapeHtml(instrument.name)} earlier" title="Move earlier" data-move-instrument="${index}" data-direction="-1"${index === 0 ? " disabled" : ""}>↑</button><button class="move-instrument" type="button" aria-label="Move ${escapeHtml(instrument.name)} later" title="Move later" data-move-instrument="${index}" data-direction="1"${index === board.instruments.length - 1 ? " disabled" : ""}>↓</button>${currentProject?.role === "owner" ? `<button class="remove-instrument" type="button" aria-label="Remove ${escapeHtml(instrument.name)}" data-remove-instrument="${index}">×</button>` : ""}</span></span>`,
   ).join("");
 }
 
@@ -745,8 +746,13 @@ function openSongDetails(songId) {
   const song = board.songs.find((item) => item.id === songId);
   if (!song) return;
   document.querySelector("#song-details-title").textContent = song.name;
-  document.querySelector("#recording-assignee").value = song.recording_assignee || "";
-  document.querySelector("#recording-due-date").value = song.recording_due_date || "";
+  const recordingTasks = document.querySelector("#recording-task-fields");
+  recordingTasks.innerHTML = board.instruments.length
+    ? board.instruments.map((instrument, index) => {
+      const part = song.parts[index];
+      return `<div class="instrument-task" data-instrument-id="${instrument.id}"><h4>${escapeHtml(instrument.name)}</h4><p class="instrument-task-assignee">Assigned to <strong>${escapeHtml(instrument.assigned_to || "Unassigned")}</strong></p><div class="instrument-task-fields"><label>Due date<input data-field="due-date" type="date" value="${escapeHtml(part.due_date || "")}" /></label></div></div>`;
+    }).join("")
+    : '<p class="no-instrument-tasks">Add instruments to assign recording work.</p>';
   document.querySelector("#mix-assignee").value = song.mix_assignee || "";
   document.querySelector("#mix-due-date").value = song.mix_due_date || "";
   document.querySelector("#master-assignee").value = song.master_assignee || "";
@@ -764,8 +770,6 @@ document.querySelector("#song-details-form").addEventListener("submit", async (e
   const songId = form.dataset.songId;
   if (!songId) return;
   const fields = {
-    recording_assignee: "#recording-assignee",
-    recording_due_date: "#recording-due-date",
     mix_assignee: "#mix-assignee",
     mix_due_date: "#mix-due-date",
     master_assignee: "#master-assignee",
@@ -782,6 +786,17 @@ document.querySelector("#song-details-form").addEventListener("submit", async (e
   try {
     const { error } = await supabase.from("songs").update(updates).eq("id", songId);
     if (error) throw error;
+    const taskUpdates = [...document.querySelectorAll("#recording-task-fields .instrument-task")].map((task) => {
+      const dueDate = task.querySelector('[data-field="due-date"]').value;
+      return supabase.from("song_parts").update({
+        due_date: dueDate || null,
+        updated_by: user.id,
+        updated_at: new Date().toISOString(),
+      }).eq("song_id", songId).eq("instrument_id", task.dataset.instrumentId);
+    });
+    const results = await Promise.all(taskUpdates);
+    const taskError = results.find((result) => result.error)?.error;
+    if (taskError) throw taskError;
     await loadBoard();
     songDetailsDialog.close();
     showToast("Song details saved.");
@@ -798,6 +813,22 @@ document.querySelector("#empty-add-song").addEventListener("click", () => {
   document.querySelector("#song-name").focus();
 });
 document.querySelector("#manage-instruments").addEventListener("click", () => instrumentDialog.showModal());
+document.querySelector("#instrument-list").addEventListener("change", async (event) => {
+  const input = event.target.closest("[data-instrument-assignee]");
+  if (!input) return;
+  const instrument = board.instruments.find((item) => item.id === input.dataset.instrumentAssignee);
+  if (!instrument) return;
+  const assignedTo = input.value.trim();
+  try {
+    const { error } = await supabase.from("instruments").update({ assigned_to: assignedTo || null }).eq("id", instrument.id);
+    if (error) throw error;
+    instrument.assigned_to = assignedTo || null;
+    showToast(assignedTo ? `${instrument.name} assigned to ${assignedTo}.` : `${instrument.name} assignment cleared.`);
+  } catch (error) {
+    input.value = instrument.assigned_to || "";
+    showError(`Could not assign ${instrument.name}.`, error);
+  }
+});
 document.querySelector("#song-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const input = document.querySelector("#song-name");
