@@ -30,6 +30,7 @@ let toastTimeout;
 let authMode = "signin";
 let busy = false;
 let userInitialization = { id: null, promise: null };
+let optionalPartsSupported = true;
 
 function showError(message, error) {
   console.error(message, error);
@@ -82,9 +83,7 @@ function renderProjects() {
     document.querySelector("#project-title").textContent = currentProject.name;
     document.querySelector("#edit-title").hidden = currentProject.role !== "owner";
     document.querySelector("#project-options").hidden = currentProject.role !== "owner";
-    document.querySelector("#project-subtitle").textContent = currentProject.role === "owner"
-      ? "A little record about the in-between."
-      : `Shared with you by ${currentProject.owner_email || "your band"}.`;
+    document.querySelector("#project-subtitle").textContent = currentProject.role === "owner" ? "Project owner" : "Shared project member";
   }
 }
 
@@ -124,6 +123,12 @@ function updateProjectUrl(projectId) {
   history.replaceState({}, "", url);
 }
 
+function isMissingRequiredColumn(error) {
+  const message = error?.message?.toLowerCase() || "";
+  return (error?.code === "42703" || error?.code === "PGRST204")
+    && message.includes("required");
+}
+
 async function loadBoard() {
   if (!currentProject) return;
   const projectId = currentProject.id;
@@ -137,9 +142,26 @@ async function loadBoard() {
   const songs = songResult.data;
   let parts = [];
   if (songs.length) {
-    const result = await supabase.from("song_parts").select("song_id, instrument_id, done, required").in("song_id", songs.map((song) => song.id));
+    let result = await supabase.from("song_parts")
+      .select("song_id, instrument_id, done, required")
+      .in("song_id", songs.map((song) => song.id));
+    if (result.error && isMissingRequiredColumn(result.error)) {
+      optionalPartsSupported = false;
+      document.querySelector("#schema-warning").hidden = false;
+      result = await supabase.from("song_parts")
+        .select("song_id, instrument_id, done")
+        .in("song_id", songs.map((song) => song.id));
+    } else if (result.error) {
+      throw result.error;
+    } else {
+      optionalPartsSupported = true;
+      document.querySelector("#schema-warning").hidden = true;
+    }
     if (result.error) throw result.error;
-    parts = result.data;
+    parts = result.data.map((part) => ({ ...part, required: part.required ?? true }));
+  } else {
+    optionalPartsSupported = true;
+    document.querySelector("#schema-warning").hidden = true;
   }
   if (currentProject?.id !== projectId) return;
 
@@ -170,7 +192,7 @@ function renderBoard() {
     const noPartsRequired = requiredCount === 0;
     const cells = song.parts.map((part, instrumentIndex) => {
       const instrument = board.instruments[instrumentIndex];
-      return `<td class="part-cell"><div class="part-controls"><button class="part-toggle${part.required ? "" : " not-required"}" type="button" aria-label="Mark ${escapeHtml(song.name)} — ${escapeHtml(instrument.name)} as ${part.required ? (part.done ? "not done" : "done") : "required"}" aria-pressed="${part.done && part.required}" ${part.required ? "" : "disabled"} data-part-action="done" data-song="${songIndex}" data-instrument="${instrumentIndex}"><span aria-hidden="true">${part.required ? "✓" : "—"}</span></button><button class="not-required-toggle${part.required ? "" : " active"}" type="button" aria-label="Mark ${escapeHtml(song.name)} — ${escapeHtml(instrument.name)} ${part.required ? "not required" : "required"}" aria-pressed="${!part.required}" data-part-action="required" data-song="${songIndex}" data-instrument="${instrumentIndex}">N/R</button></div></td>`;
+      return `<td class="part-cell"><div class="part-controls"><button class="part-toggle${part.required ? "" : " not-required"}" type="button" aria-label="Mark ${escapeHtml(song.name)} — ${escapeHtml(instrument.name)} as ${part.required ? (part.done ? "not done" : "done") : "required"}" aria-pressed="${part.done && part.required}" ${part.required ? "" : "disabled"} data-part-action="done" data-song="${songIndex}" data-instrument="${instrumentIndex}"><span aria-hidden="true">${part.required ? "✓" : "—"}</span></button><button class="not-required-toggle${part.required ? "" : " active"}" type="button" aria-label="Mark ${escapeHtml(song.name)} — ${escapeHtml(instrument.name)} ${part.required ? "not required" : "required"}" aria-pressed="${!part.required}" ${optionalPartsSupported ? "" : "disabled title=\"Run the optional song parts migration in Supabase first.\""} data-part-action="required" data-song="${songIndex}" data-instrument="${instrumentIndex}">N/R</button></div></td>`;
     }).join("");
     const removeButton = currentProject?.role === "owner"
       ? `<button class="remove-song" type="button" aria-label="Remove ${escapeHtml(song.name)}" data-remove-song="${songIndex}">×</button>`
@@ -349,7 +371,7 @@ async function authenticate(event) {
 function setAuthMode(mode) {
   authMode = mode;
   const signingUp = mode === "signup";
-  document.querySelector("#auth-title").textContent = signingUp ? "Create your account" : "Welcome to Trackboard";
+  document.querySelector("#auth-title").textContent = signingUp ? "Create your account" : "Sign in to Trackboard";
   document.querySelector("#auth-submit").textContent = signingUp ? "Create account" : "Sign in";
   document.querySelector("#auth-password").autocomplete = signingUp ? "new-password" : "current-password";
   document.querySelector("#auth-mode-toggle").textContent = signingUp

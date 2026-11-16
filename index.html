@@ -31,10 +31,6 @@
         </nav>
 
         <div class="sidebar-bottom">
-          <div class="sidebar-note">
-            <span class="note-icon" aria-hidden="true">✳</span>
-            <div><strong>Good things take takes.</strong><p>Keep the momentum going.</p></div>
-          </div>
           <button class="profile-button" id="sign-out" type="button" title="Sign out">
             <span class="profile-avatar">TB</span>
             <span class="profile-copy"><strong id="user-email">Your account</strong><small>Sign out</small></span>
@@ -58,7 +54,7 @@
             <div class="heading-copy">
               <div class="eyebrow"><span class="live-dot"></span> IN PROGRESS <span class="eyebrow-divider">·</span> SHARED BOARD <span class="eyebrow-divider">·</span> LIVE UPDATES</div>
               <h1><span id="project-title">Blue Hour</span> <button class="title-edit" id="edit-title" type="button" aria-label="Rename project">↗</button></h1>
-              <p class="project-subtitle" id="project-subtitle">A little record about the in-between.</p>
+              <p class="project-subtitle" id="project-subtitle">Project owner</p>
             </div>
             <div class="heading-actions">
               <button class="share-button" id="share-button" type="button"><span aria-hidden="true">↗</span> Share board</button>
@@ -68,24 +64,25 @@
 
           <section class="progress-card" aria-label="Recording progress">
             <div class="progress-main">
-              <div class="progress-label">THE BIG PICTURE <span class="progress-spark" aria-hidden="true">✳</span></div>
-              <div class="progress-numbers"><strong id="overall-percent">0%</strong><span>of the record is in the can</span></div>
+              <div class="progress-label">OVERALL PROGRESS</div>
+              <div class="progress-numbers"><strong id="overall-percent">0%</strong><span>of required parts complete</span></div>
               <div class="progress-track"><div class="progress-fill" id="overall-progress"></div></div>
             </div>
             <div class="progress-stat"><span class="stat-icon song-stat" aria-hidden="true">♫</span><div><strong id="song-count">0</strong><small>songs</small></div></div>
             <div class="progress-stat"><span class="stat-icon take-stat" aria-hidden="true">✓</span><div><strong id="take-count">0/0</strong><small>parts tracked</small></div></div>
-            <div class="progress-stat last-stat"><span class="stat-icon date-stat" aria-hidden="true">◷</span><div><strong>LIVE</strong><small>shared session</small></div></div>
+            <div class="progress-stat last-stat"><span class="stat-icon date-stat" aria-hidden="true">◷</span><div><strong>LIVE</strong><small>active members</small></div></div>
           </section>
 
           <section class="board-section" aria-labelledby="board-title">
             <div class="board-toolbar">
-              <div class="board-title-group"><div class="board-heading"><h2 id="board-title">Recording board</h2><span class="board-count" id="board-song-count">0 songs</span></div><p>One part at a time. You’ve got this.</p></div>
+              <div class="board-title-group"><div class="board-heading"><h2 id="board-title">Recording board</h2><span class="board-count" id="board-song-count">0 songs</span></div></div>
               <div class="board-actions">
                 <button class="columns-button" id="manage-instruments" type="button"><span aria-hidden="true">☷</span> Instruments</button>
                 <button class="add-song-button" id="add-song" type="button"><span aria-hidden="true">+</span> Add a song</button>
               </div>
             </div>
 
+            <p class="schema-warning" id="schema-warning" role="status" hidden>The database update for “not required” parts hasn’t been applied yet. Songs still work; run the latest migration in Supabase to enable N/R.</p>
             <div class="board-frame">
               <div class="whiteboard-top"><span class="board-led" aria-hidden="true"></span><span class="whiteboard-caption">BAND ROOM · RECORDING PLAN</span><span class="whiteboard-marker"><i></i> DRY ERASE</span></div>
               <div class="board-scroll" tabindex="0" aria-label="Scrollable recording progress table">
@@ -95,22 +92,18 @@
                 </table>
               </div>
               <div class="empty-state" id="empty-state" hidden>
-                <span aria-hidden="true">♫</span>
-                <strong>Your first song starts here.</strong>
-                <p>Add a song to start tracking your record.</p>
+                <strong>No songs yet</strong>
+                <p>Add a song to track its instrument parts.</p>
                 <button class="add-song-button" id="empty-add-song" type="button"><span aria-hidden="true">+</span> Add a song</button>
               </div>
               <div class="board-footer"><span><span class="footer-check" aria-hidden="true">✓</span> Done <span class="footer-separator">·</span> <span class="not-required-legend">N/R</span> not required</span><span id="board-footer-count">0/0 required parts done</span></div>
             </div>
           </section>
 
-          <footer class="page-footer"><span>MADE FOR THE MUSIC YOU’RE MAKING</span><span>TAKE YOUR TIME. MAKE IT YOURS. <span aria-hidden="true">✳</span></span></footer>
         </section>
         <section class="empty-workspace" id="empty-workspace" hidden>
-          <span class="empty-project-icon" aria-hidden="true">♫</span>
-          <p class="dialog-kicker">A NEW RECORD STARTS HERE</p>
-          <h1>Your band’s next chapter.</h1>
-          <p>Create a project and invite your bandmates to track every part together.</p>
+          <h1>No projects yet</h1>
+          <p>Create a project to start a shared recording board.</p>
           <button class="add-song-button" id="empty-create-project" type="button"><span aria-hidden="true">+</span> Create a project</button>
         </section>
       </main>
@@ -155,9 +148,9 @@
     <section class="auth-gate" id="auth-gate" hidden>
       <form class="auth-card" id="auth-form">
         <a class="brand auth-brand" href="#" aria-label="Trackboard home">Trackboard</a>
-        <div class="dialog-kicker">YOUR BAND, IN THE LOOP</div>
-        <h1 id="auth-title">Welcome to Trackboard</h1>
-        <p id="auth-description">Sign in or create an account to see your band’s recording boards.</p>
+        <div class="dialog-kicker">ACCOUNT</div>
+        <h1 id="auth-title">Sign in to Trackboard</h1>
+        <p id="auth-description">Sign in or create an account to access your projects.</p>
         <label class="field-label" for="auth-email">EMAIL ADDRESS</label>
         <input id="auth-email" type="email" placeholder="you@yourband.com" required autocomplete="email" />
         <div class="auth-password-field" id="auth-password-field">
