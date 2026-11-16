@@ -221,7 +221,7 @@ function renderBoard() {
 function renderInstrumentList() {
   const list = document.querySelector("#instrument-list");
   list.innerHTML = board.instruments.map((instrument, index) =>
-    `<span class="instrument-chip">${escapeHtml(instrument.name)}${currentProject?.role === "owner" ? `<button class="remove-instrument" type="button" aria-label="Remove ${escapeHtml(instrument.name)}" data-remove-instrument="${index}">×</button>` : ""}</span>`,
+    `<span class="instrument-chip"><span>${escapeHtml(instrument.name)}</span><span class="instrument-actions"><button class="move-instrument" type="button" aria-label="Move ${escapeHtml(instrument.name)} earlier" title="Move earlier" data-move-instrument="${index}" data-direction="-1"${index === 0 ? " disabled" : ""}>↑</button><button class="move-instrument" type="button" aria-label="Move ${escapeHtml(instrument.name)} later" title="Move later" data-move-instrument="${index}" data-direction="1"${index === board.instruments.length - 1 ? " disabled" : ""}>↓</button>${currentProject?.role === "owner" ? `<button class="remove-instrument" type="button" aria-label="Remove ${escapeHtml(instrument.name)}" data-remove-instrument="${index}">×</button>` : ""}</span></span>`,
   ).join("");
 }
 
@@ -607,6 +607,25 @@ boardBody.addEventListener("click", async (event) => {
   }
 });
 document.querySelector("#instrument-list").addEventListener("click", async (event) => {
+  const move = event.target.closest("[data-move-instrument]");
+  if (move && currentProject) {
+    const index = Number(move.dataset.moveInstrument);
+    const nextIndex = index + Number(move.dataset.direction);
+    if (nextIndex < 0 || nextIndex >= board.instruments.length) return;
+    const orderedIds = board.instruments.map((instrument) => instrument.id);
+    [orderedIds[index], orderedIds[nextIndex]] = [orderedIds[nextIndex], orderedIds[index]];
+    try {
+      const { error } = await supabase.rpc("reorder_project_instruments", {
+        target_project: currentProject.id,
+        ordered_instrument_ids: orderedIds,
+      });
+      if (error) throw error;
+      await loadBoard();
+    } catch (error) {
+      showError("Could not reorder the instruments.", error);
+    }
+    return;
+  }
   const remove = event.target.closest("[data-remove-instrument]");
   if (!remove || !currentProject) return;
   const instrument = board.instruments[Number(remove.dataset.removeInstrument)];

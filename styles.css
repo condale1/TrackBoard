@@ -164,6 +164,10 @@ h1 { display: flex; align-items: center; gap: 10px; margin: 13px 0 4px; font: 70
 .cancel-button { height: 32px; padding: 0 12px; border: 1px solid #3a3b32; border-radius: 5px; color: #c0c1b6; background: transparent; font-size: 10px; cursor: pointer; }
 .instrument-list { display: flex; flex-wrap: wrap; gap: 7px; margin: -4px 0 21px; }
 .instrument-chip { display: flex; align-items: center; gap: 7px; padding: 6px 8px; border: 1px solid #37382f; border-radius: 5px; color: #d0d0c4; background: #20211b; font-size: 10px; }
+.instrument-actions { display: inline-flex; align-items: center; gap: 2px; margin-left: 2px; }
+.move-instrument { width: 20px; height: 20px; padding: 0; border: 1px solid #42443a; border-radius: 3px; color: #c9d897; background: #292b23; font-size: 12px; line-height: 1; cursor: pointer; }
+.move-instrument:hover:not(:disabled) { border-color: #9baa6a; color: #eff5da; background: #3a402c; }
+.move-instrument:disabled { border-color: transparent; color: #62645a; background: transparent; opacity: .5; cursor: default; }
 .remove-instrument { width: 14px; height: 14px; padding: 0; border: 0; color: #929388; background: transparent; cursor: pointer; font-size: 14px; line-height: 12px; }
 .remove-instrument:hover { color: #ef9b88; }
 .inline-field { display: flex; gap: 7px; }
