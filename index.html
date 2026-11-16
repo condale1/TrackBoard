@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#11120f" />
+    <title>Trackboard — Recording board</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="app.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a class="brand" href="#" aria-label="Trackboard home">
+          <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+          <span>trackboard<span class="brand-period">.</span></span>
+        </a>
+
+        <div class="sidebar-label">YOUR SPACE</div>
+        <button class="workspace-switcher" type="button" aria-label="Your shared projects">
+          <span class="workspace-avatar">TB</span>
+          <span class="workspace-copy"><strong>My projects</strong><small>Shared with your band</small></span>
+          <span class="chevron" aria-hidden="true">⌄</span>
+        </button>
+
+        <div class="sidebar-label projects-label">PROJECTS <button id="new-project-shortcut" class="tiny-add" type="button" aria-label="Add project">+</button></div>
+        <nav class="project-nav" aria-label="Projects">
+          <div id="project-nav-list"></div>
+        </nav>
+
+        <div class="sidebar-bottom">
+          <div class="sidebar-note">
+            <span class="note-icon" aria-hidden="true">✳</span>
+            <div><strong>Good things take takes.</strong><p>Keep the momentum going.</p></div>
+          </div>
+          <button class="profile-button" id="sign-out" type="button" title="Sign out">
+            <span class="profile-avatar">TB</span>
+            <span class="profile-copy"><strong id="user-email">Your account</strong><small>Sign out</small></span>
+            <span class="profile-more" aria-hidden="true">↗</span>
+          </button>
+        </div>
+      </aside>
+
+      <main class="main-content" id="board">
+        <header class="topbar">
+          <div class="breadcrumbs"><span>Projects</span><span class="crumb-slash">/</span><strong>Blue Hour</strong></div>
+          <div class="topbar-right">
+            <div class="presence" id="presence" aria-label="You are online"><span class="live-dot"></span><span class="presence-count">LIVE</span></div>
+            <span class="topbar-divider"></span>
+            <button class="icon-button help-button" type="button" aria-label="Help">?</button>
+          </div>
+        </header>
+
+        <section class="page-content" hidden>
+          <div class="project-heading">
+            <div class="heading-copy">
+              <div class="eyebrow"><span class="live-dot"></span> IN PROGRESS <span class="eyebrow-divider">·</span> SHARED BOARD <span class="eyebrow-divider">·</span> LIVE UPDATES</div>
+              <h1><span id="project-title">Blue Hour</span> <button class="title-edit" id="edit-title" type="button" aria-label="Rename project">↗</button></h1>
+              <p class="project-subtitle" id="project-subtitle">A little record about the in-between.</p>
+            </div>
+            <div class="heading-actions">
+              <button class="share-button" id="share-button" type="button"><span aria-hidden="true">↗</span> Share board</button>
+              <button class="more-button" id="project-options" type="button" aria-label="Project options">···</button>
+            </div>
+          </div>
+
+          <section class="progress-card" aria-label="Recording progress">
+            <div class="progress-main">
+              <div class="progress-label">THE BIG PICTURE <span class="progress-spark" aria-hidden="true">✳</span></div>
+              <div class="progress-numbers"><strong id="overall-percent">0%</strong><span>of the record is in the can</span></div>
+              <div class="progress-track"><div class="progress-fill" id="overall-progress"></div></div>
+            </div>
+            <div class="progress-stat"><span class="stat-icon song-stat" aria-hidden="true">♫</span><div><strong id="song-count">0</strong><small>songs</small></div></div>
+            <div class="progress-stat"><span class="stat-icon take-stat" aria-hidden="true">✓</span><div><strong id="take-count">0/0</strong><small>parts tracked</small></div></div>
+            <div class="progress-stat last-stat"><span class="stat-icon date-stat" aria-hidden="true">◷</span><div><strong>LIVE</strong><small>shared session</small></div></div>
+          </section>
+
+          <section class="board-section" aria-labelledby="board-title">
+            <div class="board-toolbar">
+              <div class="board-title-group"><div class="board-heading"><h2 id="board-title">Recording board</h2><span class="board-count" id="board-song-count">0 songs</span></div><p>One part at a time. You’ve got this.</p></div>
+              <div class="board-actions">
+                <button class="columns-button" id="manage-instruments" type="button"><span aria-hidden="true">☷</span> Instruments</button>
+                <button class="add-song-button" id="add-song" type="button"><span aria-hidden="true">+</span> Add a song</button>
+              </div>
+            </div>
+
+            <div class="board-frame">
+              <div class="whiteboard-top"><span class="board-led" aria-hidden="true"></span><span class="whiteboard-caption">BAND ROOM · RECORDING PLAN</span><span class="whiteboard-marker"><i></i> DRY ERASE</span></div>
+              <div class="board-scroll" tabindex="0" aria-label="Scrollable recording progress table">
+                <table class="recording-table">
+                  <thead id="board-head"></thead>
+                  <tbody id="board-body"></tbody>
+                </table>
+              </div>
+              <div class="empty-state" id="empty-state" hidden>
+                <span aria-hidden="true">♫</span>
+                <strong>Your first song starts here.</strong>
+                <p>Add a song to start tracking your record.</p>
+                <button class="add-song-button" id="empty-add-song" type="button"><span aria-hidden="true">+</span> Add a song</button>
+              </div>
+              <div class="board-footer"><span><span class="footer-check" aria-hidden="true">✓</span> Tap a box to mark a part done</span><span id="board-footer-count">0 parts tracked</span></div>
+            </div>
+          </section>
+
+          <footer class="page-footer"><span>MADE FOR THE MUSIC YOU’RE MAKING</span><span>TAKE YOUR TIME. MAKE IT YOURS. <span aria-hidden="true">✳</span></span></footer>
+        </section>
+        <section class="empty-workspace" id="empty-workspace" hidden>
+          <span class="empty-project-icon" aria-hidden="true">♫</span>
+          <p class="dialog-kicker">A NEW RECORD STARTS HERE</p>
+          <h1>Your band’s next chapter.</h1>
+          <p>Create a project and invite your bandmates to track every part together.</p>
+          <button class="add-song-button" id="empty-create-project" type="button"><span aria-hidden="true">+</span> Create a project</button>
+        </section>
+      </main>
+    </div>
+
+    <dialog class="app-dialog" id="song-dialog">
+      <form method="dialog" id="song-form">
+        <div class="dialog-top"><span class="dialog-kicker">NEW TRACK</span><button class="dialog-close" type="button" data-close aria-label="Close dialog">×</button></div>
+        <h2>Add a song</h2>
+        <p>Give this one a name. You can change it whenever you like.</p>
+        <label class="field-label" for="song-name">SONG NAME</label>
+        <input id="song-name" name="songName" type="text" maxlength="60" placeholder="e.g. The Long Way Home" required autocomplete="off" />
+        <div class="dialog-actions"><button class="cancel-button" type="button" data-close>Cancel</button><button class="add-song-button" type="submit">Add song</button></div>
+      </form>
+    </dialog>
+    <dialog class="app-dialog" id="project-dialog">
+      <form method="dialog" id="project-form">
+        <div class="dialog-top"><span class="dialog-kicker">NEW PROJECT</span><button class="dialog-close" type="button" data-close aria-label="Close dialog">×</button></div>
+        <h2>Start a new record</h2>
+        <p>Create a shared recording board for your next release.</p>
+        <label class="field-label" for="project-name">PROJECT NAME</label>
+        <input id="project-name" name="projectName" type="text" maxlength="60" placeholder="e.g. Blue Hour" required autocomplete="off" />
+        <div class="dialog-actions"><button class="cancel-button" type="button" data-close>Cancel</button><button class="add-song-button" type="submit">Create project</button></div>
+      </form>
+    </dialog>
+    <dialog class="app-dialog" id="project-actions-dialog">
+      <div class="dialog-top"><span class="dialog-kicker">PROJECT SETTINGS</span><button class="dialog-close" type="button" data-close aria-label="Close dialog">×</button></div>
+      <h2>Manage project</h2>
+      <p>Changes apply to everyone who has joined this board.</p>
+      <div class="project-settings-actions"><button class="settings-action" id="rename-project-action" type="button"><strong>Rename project</strong><span>Change the name your band sees.</span></button><button class="settings-action danger-action" id="delete-project-action" type="button"><strong>Delete project</strong><span>Delete this board and all its recording progress.</span></button></div>
+    </dialog>
+    <dialog class="app-dialog" id="recovery-dialog">
+      <form method="dialog" id="recovery-form">
+        <div class="dialog-top"><span class="dialog-kicker">ACCOUNT SECURITY</span></div>
+        <h2>Choose a new password</h2>
+        <p>Use at least 8 characters to secure your Trackboard account.</p>
+        <label class="field-label" for="recovery-password">NEW PASSWORD</label>
+        <input id="recovery-password" type="password" minlength="8" required autocomplete="new-password" />
+        <div class="dialog-actions"><button class="add-song-button" type="submit">Update password</button></div>
+      </form>
+    </dialog>
+    <section class="auth-gate" id="auth-gate" hidden>
+      <form class="auth-card" id="auth-form">
+        <a class="brand auth-brand" href="#" aria-label="Trackboard home"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>trackboard<span class="brand-period">.</span></span></a>
+        <div class="dialog-kicker">YOUR BAND, IN THE LOOP</div>
+        <h1 id="auth-title">Welcome to Trackboard</h1>
+        <p id="auth-description">Sign in or create an account to see your band’s recording boards.</p>
+        <label class="field-label" for="auth-email">EMAIL ADDRESS</label>
+        <input id="auth-email" type="email" placeholder="you@yourband.com" required autocomplete="email" />
+        <div class="auth-password-field" id="auth-password-field">
+          <label class="field-label" for="auth-password">PASSWORD</label>
+          <input id="auth-password" type="password" minlength="8" placeholder="At least 8 characters" autocomplete="current-password" />
+        </div>
+        <button class="add-song-button auth-submit" id="auth-submit" type="submit">Sign in</button>
+        <button class="auth-mode-toggle" id="auth-mode-toggle" type="button">New here? Create an account</button>
+        <button class="auth-forgot-password" id="forgot-password" type="button">Forgot your password?</button>
+        <p class="auth-message" id="auth-message" role="status"></p>
+        <p class="auth-setup-error" id="auth-setup-error" hidden>Trackboard isn’t connected to Supabase yet. Add your project URL and anon key to a <code>.env</code> file, then restart the app.</p>
+      </form>
+    </section>
+
+    <dialog class="app-dialog" id="instrument-dialog">
+      <form method="dialog" id="instrument-form">
+        <div class="dialog-top"><span class="dialog-kicker">YOUR LINEUP</span><button class="dialog-close" type="button" data-close aria-label="Close dialog">×</button></div>
+        <h2>Instruments</h2>
+        <p>Add the parts you want to track, or remove any that aren’t part of this record.</p>
+        <div class="instrument-list" id="instrument-list"></div>
+        <label class="field-label" for="instrument-name">ADD AN INSTRUMENT</label>
+        <div class="inline-field"><input id="instrument-name" name="instrumentName" type="text" maxlength="24" placeholder="e.g. Banjo" autocomplete="off" /><button class="add-instrument-button" type="submit" aria-label="Add instrument">+</button></div>
+        <div class="dialog-actions"><button class="cancel-button" type="button" data-close>Done</button></div>
+      </form>
+    </dialog>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>
