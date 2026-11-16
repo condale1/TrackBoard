@@ -80,6 +80,15 @@ function escapeHtml(value) {
   })[character]);
 }
 
+function safeWebUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
 function setBusy(nextBusy) {
   busy = nextBusy;
   document.querySelectorAll(".app-shell button").forEach((button) => {
@@ -335,13 +344,17 @@ function renderBoard() {
       ? `<button class="remove-song" type="button" aria-label="Remove ${escapeHtml(song.name)}" data-remove-song="${songIndex}">×</button>`
       : "";
     const badge = noPartsRequired ? "NO PARTS" : isDone ? "DONE" : "RECORDING";
+    const referenceUrl = song.reference_url ? safeWebUrl(song.reference_url) : null;
+    const referenceLink = referenceUrl
+      ? `<a class="song-reference-link" href="${escapeHtml(referenceUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Open reference link for ${escapeHtml(song.name)} in a new tab" title="Open reference link">↗</a>`
+      : "";
     const productionStatus = (field, label) => {
       const status = song[field] || "not_started";
       const statusLabel = productionStatusLabels[status] || productionStatusLabels.not_started;
       const nextStatus = productionStatusOrder[(productionStatusOrder.indexOf(status) + 1) % productionStatusOrder.length];
       return `<button class="production-status status-${status}" type="button" data-song-status="${field}" data-song-id="${song.id}" aria-label="${label} status: ${productionStatusNames[status] || productionStatusNames.not_started}. Activate to change to ${productionStatusNames[nextStatus]}." title="${label}: ${productionStatusNames[status] || productionStatusNames.not_started}"><span>${label}</span><strong>${statusLabel}</strong></button>`;
     };
-    return `<tr><td class="song-cell"><button class="song-title song-title-button" type="button" data-song-details="${song.id}" aria-label="Open details for ${escapeHtml(song.name)}" title="Open song details">${escapeHtml(song.name)}</button><div class="song-meta"><span class="song-index">${String(songIndex + 1).padStart(2, "0")}</span><span>·</span><span>${completed}/${requiredCount} required</span><span class="song-badge${isDone ? " done" : ""}">${badge}</span></div><div class="production-statuses">${productionStatus("mix_status", "Mix")}${productionStatus("master_status", "Master")}</div></td>${cells}<td class="part-cell">${removeButton}</td></tr>`;
+    return `<tr><td class="song-cell"><div class="song-title-row"><button class="song-title song-title-button" type="button" data-song-details="${song.id}" aria-label="Open details for ${escapeHtml(song.name)}" title="Open song details">${escapeHtml(song.name)}</button>${referenceLink}</div><div class="song-meta"><span class="song-index">${String(songIndex + 1).padStart(2, "0")}</span><span>·</span><span>${completed}/${requiredCount} required</span><span class="song-badge${isDone ? " done" : ""}">${badge}</span></div><div class="production-statuses">${productionStatus("mix_status", "Mix")}${productionStatus("master_status", "Master")}</div></td>${cells}<td class="part-cell">${removeButton}</td></tr>`;
   }).join("");
 
   const totalParts = board.songs.reduce((total, song) => total + song.parts.filter((part) => part.required).length, 0);
