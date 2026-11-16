@@ -233,6 +233,18 @@ h1 { display: flex; align-items: center; gap: 10px; margin: 13px 0 4px; font: 70
 button:disabled { cursor: wait; opacity: .65; }
 .project-nav-item { min-width: 0; }
 .project-nav-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.band-list { display: grid; gap: 6px; max-height: 220px; overflow-y: auto; margin: -4px 0 15px; }
+.band-list-item { min-width: 0; display: flex; align-items: center; gap: 9px; padding: 8px; border: 1px solid #37382f; border-radius: 5px; background: #20211b; text-align: left; cursor: pointer; }
+.band-list-item:hover, .band-list-item.active { border-color: #68714c; background: #292c21; }
+.band-list-avatar { width: 29px; height: 29px; flex: 0 0 29px; display: grid; place-items: center; border-radius: 5px; color: #333923; background: #c9d17a; font: 600 9px var(--mono); }
+.band-list-copy { min-width: 0; display: grid; gap: 3px; }
+.band-list-copy strong { overflow: hidden; color: #e4e4da; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.band-list-copy small { color: #929388; font-size: 9px; }
+.band-current-indicator { margin-left: auto; color: var(--lime); font-size: 12px; }
+.band-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 20px; }
+.band-actions button { flex: 1; white-space: nowrap; }
+.instrument-chip { justify-content: space-between; min-width: min(100%, 220px); }
+.instrument-chip > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .presence { gap: 7px; color: #a4bd72; font: 9px var(--mono); letter-spacing: .5px; }
 .presence .live-dot { display: block; }
 .project-subtitle { max-width: 460px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

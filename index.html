@@ -18,10 +18,10 @@
           <span>Trackboard</span>
         </a>
 
-        <div class="sidebar-label">YOUR SPACE</div>
-        <button class="workspace-switcher" type="button" aria-label="Your shared projects">
+        <div class="sidebar-label">BAND</div>
+        <button class="workspace-switcher" id="band-switcher" type="button" aria-label="Switch band">
           <span class="workspace-avatar">TB</span>
-          <span class="workspace-copy"><strong>My projects</strong><small>Shared with your band</small></span>
+          <span class="workspace-copy"><strong id="current-band-name">Select a band</strong><small id="current-band-role">Band workspace</small></span>
           <span class="chevron" aria-hidden="true">⌄</span>
         </button>
 
@@ -57,7 +57,7 @@
               <p class="project-subtitle" id="project-subtitle">Project owner</p>
             </div>
             <div class="heading-actions">
-              <button class="share-button" id="share-button" type="button"><span aria-hidden="true">↗</span> Share board</button>
+              <button class="share-button" id="share-button" type="button"><span aria-hidden="true">↗</span> Invite to band</button>
               <button class="more-button" id="project-options" type="button" aria-label="Project options">···</button>
             </div>
           </div>
@@ -127,6 +127,20 @@
         <label class="field-label" for="project-name">PROJECT NAME</label>
         <input id="project-name" name="projectName" type="text" maxlength="60" placeholder="e.g. Blue Hour" required autocomplete="off" />
         <div class="dialog-actions"><button class="cancel-button" type="button" data-close>Cancel</button><button class="add-song-button" type="submit">Create project</button></div>
+      </form>
+    </dialog>
+    <dialog class="app-dialog" id="band-dialog">
+      <div class="dialog-top"><span class="dialog-kicker">BANDS</span><button class="dialog-close" type="button" data-close aria-label="Close dialog">×</button></div>
+      <h2>Your bands</h2>
+      <p>Each band has its own projects and members.</p>
+      <div class="band-list" id="band-list"></div>
+      <div class="band-actions">
+        <button class="cancel-button" id="rename-band" type="button">Rename current band</button>
+        <button class="cancel-button" id="invite-band" type="button">Copy band invite</button>
+      </div>
+      <form id="band-form">
+        <label class="field-label" for="band-name">CREATE A BAND</label>
+        <div class="inline-field"><input id="band-name" name="bandName" type="text" maxlength="60" placeholder="e.g. The Slow Hours" required autocomplete="off" /><button class="add-instrument-button" type="submit" aria-label="Create band">+</button></div>
       </form>
     </dialog>
     <dialog class="app-dialog" id="project-actions-dialog">

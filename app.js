@@ -16,11 +16,14 @@ const emptyState = document.querySelector("#empty-state");
 const songDialog = document.querySelector("#song-dialog");
 const instrumentDialog = document.querySelector("#instrument-dialog");
 const projectDialog = document.querySelector("#project-dialog");
+const bandDialog = document.querySelector("#band-dialog");
 const projectActionsDialog = document.querySelector("#project-actions-dialog");
 const recoveryDialog = document.querySelector("#recovery-dialog");
 const toast = document.querySelector("#toast");
 const authGate = document.querySelector("#auth-gate");
 let user = null;
+let bands = [];
+let currentBand = null;
 let projects = [];
 let currentProject = null;
 let board = emptyBoard;
@@ -71,6 +74,10 @@ function showSignedIn() {
 }
 
 function renderProjects() {
+  document.querySelector("#current-band-name").textContent = currentBand?.name || "Create a band";
+  document.querySelector("#current-band-role").textContent = currentBand?.role === "owner" ? "Band owner" : "Band workspace";
+  document.querySelector("#rename-band").disabled = currentBand?.role !== "owner";
+  document.querySelector("#invite-band").disabled = !currentBand;
   const nav = document.querySelector("#project-nav-list");
   nav.innerHTML = projects.map((project) => {
     const active = project.id === currentProject?.id;
@@ -78,6 +85,8 @@ function renderProjects() {
   }).join("");
   document.querySelector(".page-content").hidden = !currentProject;
   document.querySelector("#empty-workspace").hidden = Boolean(currentProject);
+  document.querySelector("#new-project-shortcut").hidden = !currentBand;
+  document.querySelector("#empty-create-project").textContent = currentBand ? "Create a project" : "Create a band";
   if (currentProject) {
     document.querySelector(".breadcrumbs strong").textContent = currentProject.name;
     document.querySelector("#project-title").textContent = currentProject.name;
@@ -87,16 +96,58 @@ function renderProjects() {
   }
 }
 
+function renderBands() {
+  const list = document.querySelector("#band-list");
+  list.innerHTML = bands.map((band) => {
+    const active = band.id === currentBand?.id;
+    return `<button class="band-list-item${active ? " active" : ""}" type="button" data-band-id="${band.id}" aria-current="${active ? "true" : "false"}"><span class="band-list-avatar">${escapeHtml(band.name.slice(0, 2).toUpperCase())}</span><span class="band-list-copy"><strong>${escapeHtml(band.name)}</strong><small>${band.role === "owner" ? "Owner" : "Member"}</small></span>${active ? '<span class="band-current-indicator">✓</span>' : ""}</button>`;
+  }).join("");
+  document.querySelector("#rename-band").disabled = currentBand?.role !== "owner";
+  document.querySelector("#invite-band").disabled = !currentBand;
+}
+
+async function loadBands(preferredBandId, preferredProjectId) {
+  const { data, error } = await supabase
+    .from("band_members")
+    .select("role, bands(id, name, created_by)")
+    .eq("user_id", user.id);
+  if (error) throw error;
+
+  bands = data.map((membership) => ({ ...membership.bands, role: membership.role }));
+  const url = new URL(location.href);
+  const projectId = preferredProjectId || url.searchParams.get("project");
+  let projectBandId;
+  if (projectId && !preferredBandId && !url.searchParams.get("band")) {
+    const projectResult = await supabase.from("projects").select("band_id").eq("id", projectId).maybeSingle();
+    if (projectResult.error) throw projectResult.error;
+    projectBandId = projectResult.data?.band_id;
+  }
+  const requestedBandId = preferredBandId || url.searchParams.get("band") || projectBandId || currentBand?.id;
+  currentBand = bands.find((band) => band.id === requestedBandId) || bands[0] || null;
+  renderBands();
+  await loadProjects(preferredProjectId);
+}
+
 async function loadProjects(preferredId) {
+  if (!currentBand) {
+    projects = [];
+    currentProject = null;
+    renderProjects();
+    closeLiveChannel();
+    board = emptyBoard;
+    renderBoard();
+    return;
+  }
   const { data, error } = await supabase
     .from("projects")
-    .select("id, name, created_by, project_members(role)")
+    .select("id, name, created_by, band_id")
+    .eq("band_id", currentBand.id)
     .order("created_at", { ascending: true });
   if (error) throw error;
 
   projects = data.map((project) => ({
     ...project,
-    role: project.project_members?.[0]?.role ?? "member",
+    role: currentBand.role,
   }));
   const requestedId = preferredId || new URLSearchParams(location.search).get("project");
   currentProject = projects.find((project) => project.id === requestedId)
@@ -118,6 +169,8 @@ async function loadProjects(preferredId) {
 function updateProjectUrl(projectId) {
   const url = new URL(location.href);
   url.searchParams.delete("invite");
+  if (currentBand) url.searchParams.set("band", currentBand.id);
+  else url.searchParams.delete("band");
   if (projectId) url.searchParams.set("project", projectId);
   else url.searchParams.delete("project");
   history.replaceState({}, "", url);
@@ -240,12 +293,17 @@ function subscribeToProject(projectId) {
   channel
     .on("postgres_changes", { event: "*", schema: "public", table: "instruments", filter: `project_id=eq.${projectId}` }, scheduleRefresh)
     .on("postgres_changes", { event: "*", schema: "public", table: "songs", filter: `project_id=eq.${projectId}` }, scheduleRefresh)
+    .on("postgres_changes", { event: "*", schema: "public", table: "projects", filter: `band_id=eq.${currentBand.id}` }, () => {
+      void loadProjects(currentProject?.id).catch((error) => showError("Could not refresh the band projects.", error));
+    })
     .on("postgres_changes", { event: "*", schema: "public", table: "song_parts" }, (payload) => {
       if (payload.new?.song_id && board.songs.some((song) => song.id === payload.new.song_id)) scheduleRefresh();
       if (payload.old?.song_id && board.songs.some((song) => song.id === payload.old.song_id)) scheduleRefresh();
     })
-    .on("postgres_changes", { event: "UPDATE", schema: "public", table: "projects", filter: `id=eq.${projectId}` }, () => {
-      void loadProjects(projectId).catch((error) => showError("Could not refresh the project.", error));
+    .on("postgres_changes", { event: "UPDATE", schema: "public", table: "bands", filter: `id=eq.${currentBand.id}` }, (payload) => {
+      currentBand.name = payload.new.name;
+      renderProjects();
+      renderBands();
     })
     .on("presence", { event: "sync" }, () => {
       const activeMembers = Object.keys(channel.presenceState()).length;
@@ -301,7 +359,7 @@ async function acceptInviteFromUrl() {
     history.replaceState({}, "", url);
     throw error;
   }
-  showToast("You’ve joined the shared project.");
+  showToast("You’ve joined the band.");
   return data;
 }
 
@@ -318,6 +376,8 @@ async function runUserInitialization(nextUser) {
   if (!user) {
     closeLiveChannel();
     projects = [];
+    bands = [];
+    currentBand = null;
     currentProject = null;
     renderProjects();
     showSignedOut();
@@ -327,9 +387,14 @@ async function runUserInitialization(nextUser) {
   document.querySelector("#user-email").textContent = user.email || "Band member";
   showSignedIn();
   try {
-    const invitedProject = await acceptInviteFromUrl();
-    if (projects.length === 0) await importLegacyBoardIfNeeded();
-    await loadProjects(invitedProject);
+    const invitedBand = await acceptInviteFromUrl();
+    await loadBands(invitedBand);
+    if (bands.length === 0) {
+      const imported = await importLegacyBoardIfNeeded();
+      if (imported) {
+        await loadBands();
+      }
+    }
   } catch (error) {
     showError(error.message || "Could not load your projects.", error);
   }
@@ -382,10 +447,32 @@ function setAuthMode(mode) {
 }
 
 async function createProject(name) {
-  const { data, error } = await supabase.rpc("create_project", { project_name: name });
+  if (!currentBand) throw new Error("Create or select a band before adding a project.");
+  const { data, error } = await supabase.rpc("create_project_in_band", {
+    target_band: currentBand.id,
+    project_name: name,
+  });
   if (error) throw error;
   await loadProjects(data);
   showToast(`${name} is ready for the band.`);
+}
+
+async function createBand(name) {
+  const { data, error } = await supabase.rpc("create_band", { band_name: name });
+  if (error) throw error;
+  await loadBands(data);
+  updateProjectUrl(currentProject?.id);
+  showToast(`${name} created.`);
+}
+
+async function renameBand() {
+  if (!currentBand || currentBand.role !== "owner") return;
+  const name = window.prompt("Rename this band:", currentBand.name)?.trim();
+  if (!name || name === currentBand.name) return;
+  const { error } = await supabase.from("bands").update({ name: name.slice(0, 60) }).eq("id", currentBand.id);
+  if (error) throw error;
+  await loadBands(currentBand.id, currentProject?.id);
+  showToast("Band renamed.");
 }
 
 async function renameProject() {
@@ -419,16 +506,17 @@ async function deleteProject() {
   showToast("Project deleted.");
 }
 
-async function shareProject() {
-  if (!currentProject) return;
-  const { data: token, error } = await supabase.rpc("create_project_invite", { target_project: currentProject.id });
+async function shareBand() {
+  if (!currentBand) return;
+  const { data: token, error } = await supabase.rpc("create_band_invite", { target_band: currentBand.id });
   if (error) throw error;
   const inviteUrl = new URL(location.href);
   inviteUrl.searchParams.delete("project");
+  inviteUrl.searchParams.delete("band");
   inviteUrl.searchParams.set("invite", token);
   try {
     await navigator.clipboard.writeText(inviteUrl.toString());
-    showToast("Invite link copied. Anyone with it can join for 30 days.");
+    showToast("Band invite copied. It gives access to all band projects for 30 days.");
   } catch (error) {
     console.error("Could not copy the invite link.", error);
     window.prompt("Copy this invite link:", inviteUrl.toString());
@@ -474,12 +562,59 @@ document.querySelector("#recovery-form").addEventListener("submit", async (event
   }
 });
 document.querySelector("#new-project-shortcut").addEventListener("click", () => {
+  if (!currentBand) return bandDialog.showModal();
   projectDialog.showModal();
   document.querySelector("#project-name").focus();
 });
 document.querySelector("#empty-create-project").addEventListener("click", () => {
+  if (!currentBand) return bandDialog.showModal();
   projectDialog.showModal();
   document.querySelector("#project-name").focus();
+});
+document.querySelector("#band-switcher").addEventListener("click", () => {
+  renderBands();
+  bandDialog.showModal();
+});
+document.querySelector("#band-list").addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-band-id]");
+  if (!button || button.dataset.bandId === currentBand?.id) return;
+  const selectedBand = bands.find((band) => band.id === button.dataset.bandId);
+  if (!selectedBand) return;
+  closeLiveChannel();
+  currentBand = selectedBand;
+  currentProject = null;
+  renderBands();
+  try {
+    await loadProjects();
+    updateProjectUrl(currentProject?.id);
+    if (currentProject) subscribeToProject(currentProject.id);
+    showToast(`Switched to ${currentBand.name}.`);
+  } catch (error) {
+    showError("Could not switch bands.", error);
+  }
+});
+document.querySelector("#band-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const input = document.querySelector("#band-name");
+  const name = input.value.trim();
+  if (!name || busy) return;
+  setBusy(true);
+  try {
+    await createBand(name);
+    input.value = "";
+    bandDialog.close();
+  } catch (error) {
+    showError("Could not create the band.", error);
+  } finally {
+    setBusy(false);
+  }
+});
+document.querySelector("#rename-band").addEventListener("click", () => {
+  bandDialog.close();
+  void renameBand().catch((error) => showError("Could not rename the band.", error));
+});
+document.querySelector("#invite-band").addEventListener("click", () => {
+  void shareBand().catch((error) => showError("Could not create a band invite.", error));
 });
 document.querySelector("#project-nav-list").addEventListener("click", async (event) => {
   const button = event.target.closest("[data-project-id]");
@@ -525,7 +660,7 @@ document.querySelector("#delete-project-action").addEventListener("click", () =>
   void deleteProject().catch((error) => showError("Could not delete the project.", error));
 });
 document.querySelector("#share-button").addEventListener("click", () => {
-  void shareProject().catch((error) => showError("Could not create an invite link.", error));
+  void shareBand().catch((error) => showError("Could not create a band invite.", error));
 });
 document.querySelector("#add-song").addEventListener("click", () => {
   songDialog.showModal();
