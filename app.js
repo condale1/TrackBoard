@@ -393,7 +393,7 @@ async function runUserInitialization(nextUser) {
     return;
   }
 
-  document.querySelector("#user-email").textContent = user.email || "Band member";
+  document.querySelector("#user-email").textContent = user.is_anonymous ? "Guest tester" : user.email || "Band member";
   showSignedIn();
   try {
     const invitedBand = await acceptInviteFromUrl();
@@ -452,6 +452,8 @@ function setAuthMode(mode) {
     ? "Already have an account? Sign in"
     : "New here? Create an account";
   document.querySelector("#forgot-password").hidden = signingUp;
+  document.querySelector("#guest-login").hidden = signingUp;
+  document.querySelector("#guest-login-note").hidden = signingUp;
   document.querySelector("#auth-message").textContent = "";
 }
 
@@ -543,6 +545,21 @@ async function shareBand() {
 
 document.querySelector("#auth-form").addEventListener("submit", authenticate);
 document.querySelector("#auth-mode-toggle").addEventListener("click", () => setAuthMode(authMode === "signin" ? "signup" : "signin"));
+document.querySelector("#guest-login").addEventListener("click", async () => {
+  const message = document.querySelector("#auth-message");
+  message.textContent = "";
+  if (!supabase || busy) return;
+  setBusy(true);
+  try {
+    const { data, error } = await supabase.auth.signInAnonymously();
+    if (error) throw error;
+    if (data.user) await initializeUser(data.user);
+  } catch (error) {
+    message.textContent = error.message || "Could not start a guest session. Please try again.";
+  } finally {
+    setBusy(false);
+  }
+});
 document.querySelector("#sign-out").addEventListener("click", async () => {
   try {
     const { error } = await supabase.auth.signOut();
@@ -824,6 +841,8 @@ async function start() {
     document.querySelector("#auth-setup-error").hidden = false;
     document.querySelector("#auth-password-field").hidden = true;
     document.querySelector("#auth-mode-toggle").hidden = true;
+    document.querySelector("#guest-login").hidden = true;
+    document.querySelector("#guest-login-note").hidden = true;
     document.querySelector("#auth-submit").disabled = true;
     return;
   }

@@ -269,6 +269,10 @@ button:disabled { cursor: wait; opacity: .65; }
 .auth-card > p:not(.dialog-kicker) { margin: 0 0 24px; color: #9a9b90; font-size: 11px; line-height: 1.6; }
 .auth-card input { margin-bottom: 17px; }
 .auth-submit { width: 100%; margin-top: 3px; }
+.guest-login-button { width: 100%; min-height: 42px; margin-top: 9px; border: 1px solid #45483a; border-radius: 5px; color: #e1e4d4; background: #24261f; font-size: 11px; font-weight: 600; cursor: pointer; }
+.guest-login-button:hover { border-color: #87945e; background: #2b2f23; }
+.guest-login-note { margin: 8px 0 0 !important; color: #85877c !important; font-size: 9px !important; text-align: center; }
+.guest-login-button[hidden], .guest-login-note[hidden] { display: none; }
 .auth-mode-toggle { width: 100%; margin-top: 14px; border: 0; color: #bdcb91; background: transparent; font-size: 10px; cursor: pointer; }
 .auth-forgot-password { display: block; margin: 12px auto 0; border: 0; color: #92958a; background: transparent; font-size: 10px; cursor: pointer; }
 .auth-forgot-password:hover, .auth-mode-toggle:hover { text-decoration: underline; }
