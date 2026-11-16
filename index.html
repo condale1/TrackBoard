@@ -70,7 +70,7 @@
             </div>
             <div class="progress-stat"><span class="stat-icon song-stat" aria-hidden="true">♫</span><div><strong id="song-count">0</strong><small>songs</small></div></div>
             <div class="progress-stat"><span class="stat-icon take-stat" aria-hidden="true">✓</span><div><strong id="take-count">0/0</strong><small>parts tracked</small></div></div>
-            <div class="progress-stat last-stat"><span class="stat-icon date-stat" aria-hidden="true">◷</span><div><strong>LIVE</strong><small>active members</small></div></div>
+            <button class="progress-stat release-date-stat last-stat" id="edit-release-date" type="button"><span class="stat-icon date-stat" aria-hidden="true">◷</span><span class="release-date-copy"><strong id="release-date-value">Not set</strong><small>release date</small></span></button>
           </section>
 
           <section class="board-section" aria-labelledby="board-title">
@@ -85,6 +85,7 @@
             <p class="schema-warning" id="schema-warning" role="status" hidden>The database update for “not required” parts hasn’t been applied yet. Songs still work; run the latest migration in Supabase to enable N/R.</p>
             <div class="board-frame">
               <div class="whiteboard-top"><span class="board-led" aria-hidden="true"></span><span class="whiteboard-caption">BAND ROOM · RECORDING PLAN</span><span class="whiteboard-marker"><i></i> DRY ERASE</span></div>
+              <p class="board-scroll-hint" aria-hidden="true">Swipe across to see all parts <span>→</span></p>
               <div class="board-scroll" tabindex="0" aria-label="Scrollable recording progress table">
                 <table class="recording-table">
                   <thead id="board-head"></thead>
@@ -148,6 +149,16 @@
       <h2>Manage project</h2>
       <p>Changes apply to everyone who has joined this board.</p>
       <div class="project-settings-actions"><button class="settings-action" id="rename-project-action" type="button"><strong>Rename project</strong><span>Change the name your band sees.</span></button><button class="settings-action danger-action" id="delete-project-action" type="button"><strong>Delete project</strong><span>Delete this board and all its recording progress.</span></button></div>
+    </dialog>
+    <dialog class="app-dialog" id="release-date-dialog">
+      <form method="dialog" id="release-date-form">
+        <div class="dialog-top"><span class="dialog-kicker">RELEASE PLAN</span><button class="dialog-close" type="button" data-close aria-label="Close dialog">×</button></div>
+        <h2>Set release date</h2>
+        <p>Choose the target date for this release. Your band can see it on the project board.</p>
+        <label class="field-label" for="release-date-input">RELEASE DATE</label>
+        <input id="release-date-input" name="releaseDate" type="date" />
+        <div class="dialog-actions"><button class="cancel-button" id="clear-release-date" type="button">Clear date</button><button class="add-song-button" type="submit">Save date</button></div>
+      </form>
     </dialog>
     <dialog class="app-dialog" id="recovery-dialog">
       <form method="dialog" id="recovery-form">

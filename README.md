@@ -5,7 +5,7 @@ Trackboard is a shared recording-progress board for bands. Projects, songs, inst
 ## Run locally
 
 1. Create a Supabase project.
-2. In the Supabase SQL Editor, run the migrations in order: [`202611160001_trackboard.sql`](./supabase/migrations/202611160001_trackboard.sql), [`202611160002_optional_song_parts.sql`](./supabase/migrations/202611160002_optional_song_parts.sql), [`202611160003_reorder_instruments.sql`](./supabase/migrations/202611160003_reorder_instruments.sql), and [`202611160004_bands.sql`](./supabase/migrations/202611160004_bands.sql).
+2. In the Supabase SQL Editor, run the migrations in order: [`202611160001_trackboard.sql`](./supabase/migrations/202611160001_trackboard.sql), [`202611160002_optional_song_parts.sql`](./supabase/migrations/202611160002_optional_song_parts.sql), [`202611160003_reorder_instruments.sql`](./supabase/migrations/202611160003_reorder_instruments.sql), [`202611160004_bands.sql`](./supabase/migrations/202611160004_bands.sql), and [`202611160005_release_date.sql`](./supabase/migrations/202611160005_release_date.sql).
 3. In Supabase Authentication settings, enable email/password sign-in, set the site URL, and add your local URL (for example `http://localhost:5173/**`) to the allowed redirect URLs.
 4. Copy `.env.example` to `.env` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` using the project URL and publishable/anon key from Supabase API settings. Never put a service-role key in the browser app.
 5. Run `npm install`, then `npm run dev`.
@@ -26,7 +26,7 @@ The GitHub Actions workflow uses a relative Vite asset base, so it works for Git
 
 Create an account or sign in with email and password. Create or join a band from the band selector, then create projects inside it. Use **Invite to band** to make a reusable invite link that expires after 30 days. Members of a band can see all its projects; anyone with the invite link can join, so share it only with bandmates.
 
-Supabase Row Level Security policies restrict access to band members. Members can track parts and add songs or instruments; band owners can rename bands and manage projects, songs, and instruments. Invite tokens are only returned by the membership-checked invite RPC, and invite acceptance is performed by a database function after authentication. Migration `202611160004_bands.sql` places each existing project into its own band, preserving its current members; you can rename those bands or create a new band and projects from the selector. Configure your production site's URL and authentication redirect allow-list in Supabase before deployment.
+Supabase Row Level Security policies restrict access to band members. Members can track parts and add songs or instruments; band owners can rename bands and manage projects, songs, instruments, and project release dates. Invite tokens are only returned by the membership-checked invite RPC, and invite acceptance is performed by a database function after authentication. Migration `202611160004_bands.sql` places each existing project into its own band, preserving its current members; you can rename those bands or create a new band and projects from the selector. Configure your production site's URL and authentication redirect allow-list in Supabase before deployment.
 
 ## Existing local boards
 

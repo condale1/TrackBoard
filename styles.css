@@ -17,7 +17,7 @@
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 360px; background: var(--page); color: var(--text); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+body { margin: 0; min-width: 0; background: var(--page); color: var(--text); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
 button, input { font: inherit; }
 button { color: inherit; }
 .app-shell { display: flex; min-height: 100vh; }
@@ -361,10 +361,88 @@ button:disabled { cursor: wait; opacity: .65; }
 .empty-state p { color: #67736f; }
 .empty-state .add-song-button { border-color: #314b40; color: #f3f5ed; background: #405b4d; }
 
+.release-date-stat { appearance: none; color: inherit; background: transparent; text-align: left; cursor: pointer; }
+.release-date-stat:disabled { cursor: default; opacity: 1; }
+.release-date-copy { min-width: 0; display: grid; gap: 4px; }
+.release-date-copy strong { white-space: nowrap; }
+.board-scroll-hint { display: none; }
+
 @media (max-width: 680px) {
+  .app-shell { display: block; }
+  .sidebar {
+    position: sticky; z-index: 5; top: 0; width: 100%; height: 58px; flex-basis: auto;
+    flex-direction: row; justify-content: space-between; align-items: center; gap: 8px;
+    padding: 7px 12px; border-right: 0; border-bottom: 1px solid #303129;
+  }
+  .brand { flex: 0 0 auto; margin: 0; font-size: 15px; }
+  .sidebar-label { display: none; }
+  .workspace-switcher { flex: 0 1 auto; width: auto; min-width: 0; margin: 0; padding: 3px 5px; border: 0; background: transparent; }
+  .workspace-avatar { width: 30px; height: 30px; flex: 0 0 30px; }
+  .workspace-copy { display: grid; min-width: 0; margin-left: 6px; }
+  .workspace-copy strong { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; }
+  .workspace-copy small, .chevron { display: none; }
+  .projects-label { display: flex; flex: 0 0 27px; justify-content: center; margin: 0; padding: 0; }
+  .tiny-add { width: 32px; height: 36px; border: 1px solid #393a32; border-radius: 5px; color: var(--lime); font-size: 21px; }
+  .project-nav { flex: 1 1 auto; width: auto; min-width: 0; margin: 0; overflow-x: auto; scrollbar-width: none; }
+  .project-nav::-webkit-scrollbar { display: none; }
+  #project-nav-list { display: flex; width: max-content; gap: 5px; }
+  .nav-item, .nav-item.active {
+    width: auto; height: 38px; margin: 0; padding: 0 10px; justify-content: flex-start; gap: 6px;
+    border: 1px solid transparent; font-size: 11px; white-space: nowrap;
+  }
+  .nav-item.active { border-color: #414438; background: #25271e; }
+  .nav-item:not(.active) { font-size: 11px; }
+  .nav-icon { display: none; }
+  .nav-dot { display: block; }
+  .sidebar-bottom { flex: 0 0 auto; margin: 0; }
+  .profile-button { width: 36px; height: 38px; justify-content: center; margin: 0; padding: 0; }
+  .profile-avatar { width: 30px; height: 30px; }
   .whiteboard-top { height: 31px; }
   .whiteboard-caption { font-size: 7px; }
   .whiteboard-marker { font-size: 7px; }
   .instrument-name { font-size: 19px; }
   .song-title { font-size: 21px; }
+  .page-content { padding: 24px 14px 24px; }
+  .topbar { padding: 0 14px; }
+  .project-heading { align-items: flex-start; gap: 8px; }
+  .heading-copy { min-width: 0; }
+  .eyebrow { flex-wrap: wrap; line-height: 1.5; }
+  .heading-actions { flex: 0 0 auto; }
+  .share-button { width: auto; height: 40px; padding: 0 9px; font-size: 10px; }
+  .more-button, .title-edit { min-width: 40px; min-height: 40px; }
+  .progress-card { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 0; padding: 14px 10px; }
+  .progress-main { grid-column: 1 / -1; padding: 0 4px; }
+  .progress-stat { min-width: 0; min-height: 44px; justify-content: center; gap: 6px; padding: 0 4px; }
+  .progress-stat:first-of-type { padding-left: 4px; }
+  .stat-icon { width: 25px; height: 25px; flex: 0 0 25px; }
+  .progress-stat strong, .release-date-copy strong { font-size: 10px; }
+  .progress-stat small { font-size: 9px; }
+  .release-date-stat { border-left: 1px solid #303129; }
+  .board-toolbar { align-items: flex-start; flex-direction: column; gap: 10px; }
+  .board-actions { width: 100%; }
+  .board-actions > button { flex: 1 1 0; height: 42px; }
+  .columns-button { width: auto; overflow: visible; padding: 0 8px; color: #d5d5ca; font-size: 10px; }
+  .columns-button span { margin-right: 5px; }
+  .add-song-button { min-height: 42px; }
+  .board-scroll-hint { display: flex; justify-content: space-between; margin: 0; padding: 6px 10px; color: #5c6965; background: #eef2ef; font: 9px var(--mono); }
+  .recording-table thead th:first-child, .recording-table tbody .song-cell { position: sticky; left: 0; z-index: 2; width: 142px; min-width: 142px; }
+  .recording-table thead th:first-child { z-index: 3; }
+  .recording-table thead th:not(:first-child) { width: 87px; min-width: 87px; }
+  .song-cell { padding-left: 10px; box-shadow: 5px 0 7px -6px #33423e; }
+  .part-toggle { width: 44px; height: 44px; }
+  .not-required-toggle { min-width: 32px; height: 34px; font-size: 8px; }
+  .part-controls { gap: 1px; }
+  .board-footer { min-height: 44px; gap: 8px; padding: 0 10px; font-size: 8px; }
+  .page-footer { flex-wrap: wrap; line-height: 1.6; }
+}
+
+@media (max-width: 390px) {
+  .sidebar { gap: 4px; padding-right: 7px; padding-left: 7px; }
+  .brand { font-size: 13px; }
+  .workspace-copy strong { max-width: 66px; }
+  .projects-label { flex-basis: 22px; }
+  .tiny-add { width: 28px; }
+  .profile-button { width: 31px; }
+  .page-content { padding-right: 10px; padding-left: 10px; }
+  .release-date-stat { gap: 3px; }
 }

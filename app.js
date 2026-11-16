@@ -19,6 +19,7 @@ const projectDialog = document.querySelector("#project-dialog");
 const bandDialog = document.querySelector("#band-dialog");
 const projectActionsDialog = document.querySelector("#project-actions-dialog");
 const recoveryDialog = document.querySelector("#recovery-dialog");
+const releaseDateDialog = document.querySelector("#release-date-dialog");
 const toast = document.querySelector("#toast");
 const authGate = document.querySelector("#auth-gate");
 let user = null;
@@ -93,6 +94,13 @@ function renderProjects() {
     document.querySelector("#edit-title").hidden = currentProject.role !== "owner";
     document.querySelector("#project-options").hidden = currentProject.role !== "owner";
     document.querySelector("#project-subtitle").textContent = currentProject.role === "owner" ? "Project owner" : "Shared project member";
+    const releaseDateButton = document.querySelector("#edit-release-date");
+    releaseDateButton.disabled = currentProject.role !== "owner";
+    const formattedReleaseDate = currentProject.release_date
+      ? new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: "numeric" }).format(new Date(`${currentProject.release_date}T00:00:00`))
+      : "Not set";
+    document.querySelector("#release-date-value").textContent = formattedReleaseDate;
+    releaseDateButton.setAttribute("aria-label", `${currentProject.role === "owner" ? "Set" : "View"} release date: ${formattedReleaseDate}`);
   }
 }
 
@@ -140,7 +148,7 @@ async function loadProjects(preferredId) {
   }
   const { data, error } = await supabase
     .from("projects")
-    .select("id, name, created_by, band_id")
+    .select("id, name, created_by, band_id, release_date")
     .eq("band_id", currentBand.id)
     .order("created_at", { ascending: true });
   if (error) throw error;
@@ -264,6 +272,7 @@ function renderBoard() {
   document.querySelector("#board-song-count").textContent = `${board.songs.length} ${board.songs.length === 1 ? "song" : "songs"}`;
   document.querySelector("#board-footer-count").textContent = `${completedParts}/${totalParts} required parts done`;
   document.querySelector(".board-scroll").hidden = board.songs.length === 0;
+  document.querySelector(".board-scroll-hint").hidden = board.songs.length === 0;
   document.querySelector(".board-footer").hidden = board.songs.length === 0;
   emptyState.hidden = board.songs.length !== 0;
   document.querySelector("#add-song").hidden = false;
@@ -485,6 +494,15 @@ async function renameProject() {
   showToast("Project renamed.");
 }
 
+async function saveReleaseDate(releaseDate) {
+  if (!currentProject || currentProject.role !== "owner") return;
+  const { error } = await supabase.from("projects").update({ release_date: releaseDate || null }).eq("id", currentProject.id);
+  if (error) throw error;
+  currentProject.release_date = releaseDate || null;
+  renderProjects();
+  showToast(releaseDate ? "Release date saved." : "Release date cleared.");
+}
+
 async function deleteProject() {
   if (!currentProject || currentProject.role !== "owner") return;
   if (!window.confirm(`Permanently delete “${currentProject.name}” and all its songs and progress? This cannot be undone.`)) return;
@@ -661,6 +679,28 @@ document.querySelector("#delete-project-action").addEventListener("click", () =>
 });
 document.querySelector("#share-button").addEventListener("click", () => {
   void shareBand().catch((error) => showError("Could not create a band invite.", error));
+});
+document.querySelector("#edit-release-date").addEventListener("click", () => {
+  if (!currentProject || currentProject.role !== "owner") return;
+  document.querySelector("#release-date-input").value = currentProject.release_date || "";
+  releaseDateDialog.showModal();
+});
+document.querySelector("#release-date-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  try {
+    await saveReleaseDate(document.querySelector("#release-date-input").value);
+    releaseDateDialog.close();
+  } catch (error) {
+    showError("Could not save the release date.", error);
+  }
+});
+document.querySelector("#clear-release-date").addEventListener("click", async () => {
+  try {
+    await saveReleaseDate("");
+    releaseDateDialog.close();
+  } catch (error) {
+    showError("Could not clear the release date.", error);
+  }
 });
 document.querySelector("#add-song").addEventListener("click", () => {
   songDialog.showModal();
