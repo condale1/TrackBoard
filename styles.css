@@ -365,7 +365,7 @@ button:disabled { cursor: wait; opacity: .65; }
 .empty-state p { color: #67736f; }
 .empty-state .add-song-button { border-color: #314b40; color: #f3f5ed; background: #405b4d; }
 
-.release-date-stat { appearance: none; color: inherit; background: transparent; text-align: left; cursor: pointer; }
+.release-date-stat { appearance: none; border-top: 0; border-right: 0; border-bottom: 0; color: inherit; background: transparent; text-align: left; cursor: pointer; }
 .release-date-stat:disabled { cursor: default; opacity: 1; }
 .release-date-copy { min-width: 0; display: grid; gap: 4px; }
 .release-date-copy strong { white-space: nowrap; }
