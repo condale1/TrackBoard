@@ -5,7 +5,7 @@ Trackboard is a shared recording-progress board for bands. Projects, songs, inst
 ## Run locally
 
 1. Create a Supabase project.
-2. In the Supabase SQL Editor, run [`supabase/migrations/202611160001_trackboard.sql`](./supabase/migrations/202611160001_trackboard.sql).
+2. In the Supabase SQL Editor, run [`supabase/migrations/202611160001_trackboard.sql`](./supabase/migrations/202611160001_trackboard.sql), then run [`supabase/migrations/202611160002_optional_song_parts.sql`](./supabase/migrations/202611160002_optional_song_parts.sql) to support marking individual song parts as not required.
 3. In Supabase Authentication settings, enable email/password sign-in, set the site URL, and add your local URL (for example `http://localhost:5173/**`) to the allowed redirect URLs.
 4. Copy `.env.example` to `.env` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` using the project URL and publishable/anon key from Supabase API settings. Never put a service-role key in the browser app.
 5. Run `npm install`, then `npm run dev`.

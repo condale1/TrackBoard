@@ -316,6 +316,13 @@ button:disabled { cursor: wait; opacity: .65; }
 .part-toggle:hover { border-color: #5b8077; box-shadow: 0 0 0 3px #67928518; }
 .part-toggle[aria-pressed="true"] { border-color: transparent; color: #19745d; background: transparent; box-shadow: none; }
 .part-toggle[aria-pressed="true"] span { display: block; font: 700 31px/20px "Caveat", cursive; transform: rotate(-12deg); }
+.part-controls { display: flex; justify-content: center; align-items: center; gap: 5px; }
+.part-toggle.not-required { border-color: transparent; color: #78838a; background: transparent; box-shadow: none; }
+.part-toggle.not-required span { font: 600 21px/20px "Caveat", cursive; transform: rotate(-8deg); }
+.part-toggle:disabled { opacity: 1; cursor: default; }
+.not-required-toggle { min-width: 24px; height: 20px; padding: 0 3px; border: 1px solid transparent; border-radius: 3px; color: #8c9390; background: transparent; font: 7px var(--mono); cursor: pointer; }
+.not-required-toggle:hover, .not-required-toggle:focus-visible { border-color: #9caaa8; color: #52635e; background: #e6ece8; outline: none; }
+.not-required-toggle.active { border-color: #859bca; color: #455e9b; background: #edf0f9; }
 .remove-song { color: transparent; }
 .recording-table tr:hover .remove-song, .remove-song:focus-visible { color: #a44f43; }
 .board-footer {
@@ -328,6 +335,8 @@ button:disabled { cursor: wait; opacity: .65; }
   font: 9px var(--mono);
 }
 .footer-check { border-color: #76847a; color: #476d57; }
+.footer-separator { padding: 0 4px; color: #818781; }
+.not-required-legend { color: #52639a; font-weight: 500; }
 .empty-state { color: #35474a; background: #fffefa; }
 .empty-state > span { color: #416d5b; }
 .empty-state > strong { font: 600 25px "Caveat", cursive; }

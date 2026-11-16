@@ -137,19 +137,22 @@ async function loadBoard() {
   const songs = songResult.data;
   let parts = [];
   if (songs.length) {
-    const result = await supabase.from("song_parts").select("song_id, instrument_id, done").in("song_id", songs.map((song) => song.id));
+    const result = await supabase.from("song_parts").select("song_id, instrument_id, done, required").in("song_id", songs.map((song) => song.id));
     if (result.error) throw result.error;
     parts = result.data;
   }
   if (currentProject?.id !== projectId) return;
 
-  const partIndex = new Map(parts.map((part) => [`${part.song_id}:${part.instrument_id}`, part.done]));
+  const partIndex = new Map(parts.map((part) => [`${part.song_id}:${part.instrument_id}`, {
+    done: part.done,
+    required: part.required,
+  }]));
   board = {
     project: currentProject.name,
     instruments: instrumentResult.data,
     songs: songs.map((song) => ({
       ...song,
-      checks: instrumentResult.data.map((instrument) => partIndex.get(`${song.id}:${instrument.id}`) ?? false),
+      parts: instrumentResult.data.map((instrument) => partIndex.get(`${song.id}:${instrument.id}`) ?? { done: false, required: true }),
     })),
   };
   renderBoard();
@@ -161,27 +164,30 @@ function renderBoard() {
   ).join("");
   boardHead.innerHTML = `<tr><th scope="col">SONG</th>${instrumentHeaders}<th scope="col" aria-label="Song actions"></th></tr>`;
   boardBody.innerHTML = board.songs.map((song, songIndex) => {
-    const completed = song.checks.filter(Boolean).length;
-    const isDone = completed === board.instruments.length && board.instruments.length > 0;
-    const cells = song.checks.map((checked, instrumentIndex) => {
+    const completed = song.parts.filter((part) => part.required && part.done).length;
+    const requiredCount = song.parts.filter((part) => part.required).length;
+    const isDone = requiredCount > 0 && completed === requiredCount;
+    const noPartsRequired = requiredCount === 0;
+    const cells = song.parts.map((part, instrumentIndex) => {
       const instrument = board.instruments[instrumentIndex];
-      return `<td class="part-cell"><button class="part-toggle" type="button" aria-label="Mark ${escapeHtml(song.name)} — ${escapeHtml(instrument.name)} as ${checked ? "not done" : "done"}" aria-pressed="${checked}" data-song="${songIndex}" data-instrument="${instrumentIndex}"><span aria-hidden="true">✓</span></button></td>`;
+      return `<td class="part-cell"><div class="part-controls"><button class="part-toggle${part.required ? "" : " not-required"}" type="button" aria-label="Mark ${escapeHtml(song.name)} — ${escapeHtml(instrument.name)} as ${part.required ? (part.done ? "not done" : "done") : "required"}" aria-pressed="${part.done && part.required}" ${part.required ? "" : "disabled"} data-part-action="done" data-song="${songIndex}" data-instrument="${instrumentIndex}"><span aria-hidden="true">${part.required ? "✓" : "—"}</span></button><button class="not-required-toggle${part.required ? "" : " active"}" type="button" aria-label="Mark ${escapeHtml(song.name)} — ${escapeHtml(instrument.name)} ${part.required ? "not required" : "required"}" aria-pressed="${!part.required}" data-part-action="required" data-song="${songIndex}" data-instrument="${instrumentIndex}">N/R</button></div></td>`;
     }).join("");
     const removeButton = currentProject?.role === "owner"
       ? `<button class="remove-song" type="button" aria-label="Remove ${escapeHtml(song.name)}" data-remove-song="${songIndex}">×</button>`
       : "";
-    return `<tr><td class="song-cell"><div class="song-title" title="${escapeHtml(song.name)}">${escapeHtml(song.name)}</div><div class="song-meta"><span class="song-index">${String(songIndex + 1).padStart(2, "0")}</span><span>·</span><span>${completed}/${board.instruments.length} parts</span><span class="song-badge${isDone ? " done" : ""}">${isDone ? "DONE" : "RECORDING"}</span></div></td>${cells}<td class="part-cell">${removeButton}</td></tr>`;
+    const badge = noPartsRequired ? "NO PARTS" : isDone ? "DONE" : "RECORDING";
+    return `<tr><td class="song-cell"><div class="song-title" title="${escapeHtml(song.name)}">${escapeHtml(song.name)}</div><div class="song-meta"><span class="song-index">${String(songIndex + 1).padStart(2, "0")}</span><span>·</span><span>${completed}/${requiredCount} required</span><span class="song-badge${isDone ? " done" : ""}">${badge}</span></div></td>${cells}<td class="part-cell">${removeButton}</td></tr>`;
   }).join("");
 
-  const totalParts = board.songs.length * board.instruments.length;
-  const completedParts = board.songs.reduce((total, song) => total + song.checks.filter(Boolean).length, 0);
+  const totalParts = board.songs.reduce((total, song) => total + song.parts.filter((part) => part.required).length, 0);
+  const completedParts = board.songs.reduce((total, song) => total + song.parts.filter((part) => part.required && part.done).length, 0);
   const percentage = totalParts ? Math.round((completedParts / totalParts) * 100) : 0;
   document.querySelector("#overall-percent").textContent = `${percentage}%`;
   document.querySelector("#overall-progress").style.width = `${percentage}%`;
   document.querySelector("#song-count").textContent = board.songs.length;
   document.querySelector("#take-count").textContent = `${completedParts}/${totalParts}`;
   document.querySelector("#board-song-count").textContent = `${board.songs.length} ${board.songs.length === 1 ? "song" : "songs"}`;
-  document.querySelector("#board-footer-count").textContent = `${completedParts} parts tracked`;
+  document.querySelector("#board-footer-count").textContent = `${completedParts}/${totalParts} required parts done`;
   document.querySelector(".board-scroll").hidden = board.songs.length === 0;
   document.querySelector(".board-footer").hidden = board.songs.length === 0;
   emptyState.hidden = board.songs.length !== 0;
@@ -545,14 +551,18 @@ document.querySelector("#instrument-form").addEventListener("submit", async (eve
   }
 });
 boardBody.addEventListener("click", async (event) => {
-  const toggle = event.target.closest("[data-song]");
+  const toggle = event.target.closest("[data-part-action]");
   if (toggle && currentProject) {
     const song = board.songs[Number(toggle.dataset.song)];
-    const instrument = board.instruments[Number(toggle.dataset.instrument)];
-    const done = !song.checks[Number(toggle.dataset.instrument)];
+    const instrumentIndex = Number(toggle.dataset.instrument);
+    const instrument = board.instruments[instrumentIndex];
+    const part = song.parts[instrumentIndex];
+    const update = toggle.dataset.partAction === "done"
+      ? { done: !part.done }
+      : { required: !part.required, done: false };
     try {
       const { error } = await supabase.from("song_parts").update({
-        done, updated_by: user.id, updated_at: new Date().toISOString(),
+        ...update, updated_by: user.id, updated_at: new Date().toISOString(),
       }).eq("song_id", song.id).eq("instrument_id", instrument.id);
       if (error) throw error;
       await loadBoard();
