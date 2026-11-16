@@ -8,6 +8,8 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 const defaultInstruments = ["Drums", "Bass", "Guitar", "Keys", "Lead vocal", "Backing vocals"];
+const productionStatusOrder = ["not_started", "in_progress", "done"];
+const productionStatusLabels = { not_started: "To do", in_progress: "In progress", done: "Done" };
 const emptyBoard = { project: "", instruments: [], songs: [] };
 
 const boardHead = document.querySelector("#board-head");
@@ -195,7 +197,7 @@ async function loadBoard() {
   const projectId = currentProject.id;
   const [instrumentResult, songResult] = await Promise.all([
     supabase.from("instruments").select("id, name, position").eq("project_id", projectId).order("position"),
-    supabase.from("songs").select("id, name, position").eq("project_id", projectId).order("position"),
+    supabase.from("songs").select("id, name, position, mix_status, master_status").eq("project_id", projectId).order("position"),
   ]);
   if (instrumentResult.error) throw instrumentResult.error;
   if (songResult.error) throw songResult.error;
@@ -259,7 +261,13 @@ function renderBoard() {
       ? `<button class="remove-song" type="button" aria-label="Remove ${escapeHtml(song.name)}" data-remove-song="${songIndex}">×</button>`
       : "";
     const badge = noPartsRequired ? "NO PARTS" : isDone ? "DONE" : "RECORDING";
-    return `<tr><td class="song-cell"><div class="song-title" title="${escapeHtml(song.name)}">${escapeHtml(song.name)}</div><div class="song-meta"><span class="song-index">${String(songIndex + 1).padStart(2, "0")}</span><span>·</span><span>${completed}/${requiredCount} required</span><span class="song-badge${isDone ? " done" : ""}">${badge}</span></div></td>${cells}<td class="part-cell">${removeButton}</td></tr>`;
+    const productionStatus = (field, label) => {
+      const status = song[field] || "not_started";
+      const statusLabel = productionStatusLabels[status] || productionStatusLabels.not_started;
+      const nextStatus = productionStatusOrder[(productionStatusOrder.indexOf(status) + 1) % productionStatusOrder.length];
+      return `<button class="production-status status-${status}" type="button" data-song-status="${field}" data-song-id="${song.id}" aria-label="${label} status: ${statusLabel}. Activate to change to ${productionStatusLabels[nextStatus]}." title="${label}: ${statusLabel}"><span>${label}</span><strong>${statusLabel}</strong></button>`;
+    };
+    return `<tr><td class="song-cell"><div class="song-title" title="${escapeHtml(song.name)}">${escapeHtml(song.name)}</div><div class="song-meta"><span class="song-index">${String(songIndex + 1).padStart(2, "0")}</span><span>·</span><span>${completed}/${requiredCount} required</span><span class="song-badge${isDone ? " done" : ""}">${badge}</span></div><div class="production-statuses">${productionStatus("mix_status", "Mix")}${productionStatus("master_status", "Master")}</div></td>${cells}<td class="part-cell">${removeButton}</td></tr>`;
   }).join("");
 
   const totalParts = board.songs.reduce((total, song) => total + song.parts.filter((part) => part.required).length, 0);
@@ -765,6 +773,22 @@ document.querySelector("#instrument-form").addEventListener("submit", async (eve
   }
 });
 boardBody.addEventListener("click", async (event) => {
+  const statusButton = event.target.closest("[data-song-status]");
+  if (statusButton && currentProject) {
+    const field = statusButton.dataset.songStatus;
+    const song = board.songs.find((item) => item.id === statusButton.dataset.songId);
+    if (!song || !["mix_status", "master_status"].includes(field)) return;
+    const currentStatus = song[field] || "not_started";
+    const nextStatus = productionStatusOrder[(productionStatusOrder.indexOf(currentStatus) + 1) % productionStatusOrder.length];
+    try {
+      const { error } = await supabase.from("songs").update({ [field]: nextStatus }).eq("id", song.id);
+      if (error) throw error;
+      await loadBoard();
+    } catch (error) {
+      showError(`Could not update the ${field === "mix_status" ? "mix" : "master"} status.`, error);
+    }
+    return;
+  }
   const toggle = event.target.closest("[data-part-action]");
   if (toggle && currentProject) {
     const song = board.songs[Number(toggle.dataset.song)];

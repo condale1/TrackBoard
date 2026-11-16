@@ -132,6 +132,15 @@ h1 { display: flex; align-items: center; gap: 10px; margin: 13px 0 4px; font: 70
 .song-index { color: #999b8b; }
 .song-badge { margin-left: auto; padding: 2px 5px; border-radius: 3px; color: #b8c881; background: #303523; font-size: 7px; }
 .song-badge.done { color: #aeb0a4; background: #292a25; }
+.production-statuses { display: flex; gap: 5px; margin-top: 7px; }
+.production-status { min-width: 0; min-height: 38px; flex: 1 1 0; display: grid; align-content: center; gap: 2px; padding: 3px 6px; border: 1px solid #c4ccca; border-radius: 4px; color: #56635f; background: #f1f4f0; text-align: left; cursor: pointer; }
+.production-status > span { color: #717d79; font: 7px var(--mono); letter-spacing: .45px; text-transform: uppercase; }
+.production-status strong { overflow: hidden; color: #596560; font: 600 9px var(--sans); text-overflow: ellipsis; white-space: nowrap; }
+.production-status.status-in_progress { border-color: #d8c394; background: #faf4e5; }
+.production-status.status-in_progress strong { color: #80662f; }
+.production-status.status-done { border-color: #a9c7b6; background: #eaf4ed; }
+.production-status.status-done strong { color: #376b4f; }
+.production-status:hover, .production-status:focus-visible { outline: 2px solid #789589; outline-offset: 1px; }
 .part-cell { height: 54px; text-align: center; background: #191a16; }
 .part-toggle { width: 23px; height: 23px; display: inline-grid; place-items: center; padding: 0; border: 1px solid #45463c; border-radius: 50%; color: transparent; background: #1b1c17; cursor: pointer; transition: all .15s; }
 .part-toggle:hover { border-color: #a9bd6c; box-shadow: 0 0 0 3px #d3ec7a0b; }
