@@ -23,6 +23,14 @@ const productionStatusNames = {
   changes_requested: "Changes requested",
   approved: "Approved",
 };
+const releaseChecklistItems = [
+  ["artwork", "Artwork ready"],
+  ["tracklist", "Tracklist final"],
+  ["credits", "Credits confirmed"],
+  ["metadata", "Release metadata checked"],
+  ["distribution", "Uploaded to distributor"],
+  ["announcement", "Announcement ready"],
+];
 const emptyBoard = { project: "", instruments: [], songs: [] };
 
 const boardHead = document.querySelector("#board-head");
@@ -51,6 +59,7 @@ let authMode = "signin";
 let busy = false;
 let userInitialization = { id: null, promise: null };
 let optionalPartsSupported = true;
+let artworkBusy = false;
 
 function showError(message, error) {
   console.error(message, error);
@@ -118,6 +127,51 @@ function renderProjects() {
     document.querySelector("#release-date-value").textContent = formattedReleaseDate;
     releaseDateButton.setAttribute("aria-label", `${currentProject.role === "owner" ? "Set" : "View"} release date: ${formattedReleaseDate}`);
   }
+  renderReleaseChecklist();
+}
+
+function renderReleaseChecklist() {
+  const section = document.querySelector("#release-checklist-list");
+  const panel = document.querySelector(".release-section");
+  panel.hidden = !currentProject;
+  if (!currentProject) return;
+  const checklist = currentProject.release_checklist || {};
+  const completed = releaseChecklistItems.filter(([key]) => checklist[key]).length;
+  document.querySelector("#release-checklist-count").textContent = `${completed}/${releaseChecklistItems.length}`;
+  section.innerHTML = releaseChecklistItems.map(([key, label]) =>
+    `<label class="release-checklist-item"><input type="checkbox" data-release-item="${key}"${checklist[key] ? " checked" : ""}><span>${label}</span></label>`,
+  ).join("");
+  const image = document.querySelector("#release-artwork-image");
+  const placeholder = document.querySelector("#release-artwork-placeholder");
+  const hasArtwork = Boolean(currentProject.artwork_path);
+  document.querySelector("#remove-release-artwork").hidden = !hasArtwork;
+  if (!hasArtwork) {
+    image.hidden = true;
+    image.removeAttribute("src");
+    delete image.dataset.projectId;
+    placeholder.hidden = false;
+  } else if (image.dataset.projectId !== currentProject.id) {
+    image.hidden = true;
+    placeholder.hidden = false;
+  }
+}
+
+async function refreshArtworkPreview() {
+  const projectId = currentProject?.id;
+  const artworkPath = currentProject?.artwork_path;
+  const image = document.querySelector("#release-artwork-image");
+  const placeholder = document.querySelector("#release-artwork-placeholder");
+  if (!projectId || !artworkPath) return;
+  const { data, error } = await supabase.storage.from("release-artwork").createSignedUrl(artworkPath, 86400);
+  if (error) {
+    if (currentProject?.id === projectId) showError("Could not load the release artwork.", error);
+    return;
+  }
+  if (currentProject?.id !== projectId || currentProject.artwork_path !== artworkPath) return;
+  image.src = data.signedUrl;
+  image.dataset.projectId = projectId;
+  image.hidden = false;
+  placeholder.hidden = true;
 }
 
 function renderBands() {
@@ -164,7 +218,7 @@ async function loadProjects(preferredId) {
   }
   const { data, error } = await supabase
     .from("projects")
-    .select("id, name, created_by, band_id, release_date")
+    .select("id, name, created_by, band_id, release_date, release_checklist, artwork_path")
     .eq("band_id", currentBand.id)
     .order("created_at", { ascending: true });
   if (error) throw error;
@@ -180,6 +234,7 @@ async function loadProjects(preferredId) {
     || null;
   renderProjects();
   if (currentProject) {
+    await refreshArtworkPreview();
     await loadBoard();
     subscribeToProject(currentProject.id);
     updateProjectUrl(currentProject.id);
@@ -740,6 +795,88 @@ document.querySelector("#clear-release-date").addEventListener("click", async ()
     releaseDateDialog.close();
   } catch (error) {
     showError("Could not clear the release date.", error);
+  }
+});
+document.querySelector("#release-checklist-list").addEventListener("change", async (event) => {
+  const checkbox = event.target.closest("[data-release-item]");
+  if (!checkbox || !currentProject) return;
+  const project = currentProject;
+  const checklist = { ...Object.fromEntries(releaseChecklistItems.map(([key]) => [key, false])), ...(project.release_checklist || {}), [checkbox.dataset.releaseItem]: checkbox.checked };
+  try {
+    const { error } = await supabase.from("projects").update({ release_checklist: checklist }).eq("id", project.id);
+    if (error) throw error;
+    if (currentProject?.id === project.id) {
+      currentProject.release_checklist = checklist;
+      renderReleaseChecklist();
+    }
+  } catch (error) {
+    if (currentProject?.id === project.id) renderReleaseChecklist();
+    showError("Could not update the release checklist.", error);
+  }
+});
+document.querySelector("#release-artwork-input").addEventListener("change", async (event) => {
+  const input = event.currentTarget;
+  const file = input.files?.[0];
+  if (!file || !currentProject || artworkBusy) return;
+  const allowedTypes = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+  if (!allowedTypes[file.type] || file.size > 10 * 1024 * 1024) {
+    showToast("Choose a JPG, PNG, or WebP image under 10 MB.");
+    input.value = "";
+    return;
+  }
+  const project = currentProject;
+  const oldPath = project.artwork_path;
+  const path = `${project.id}/${crypto.randomUUID()}.${allowedTypes[file.type]}`;
+  artworkBusy = true;
+  try {
+    const { error: uploadError } = await supabase.storage.from("release-artwork").upload(path, file, {
+      cacheControl: "3600",
+      contentType: file.type,
+      upsert: false,
+    });
+    if (uploadError) throw uploadError;
+    const checklist = { ...Object.fromEntries(releaseChecklistItems.map(([key]) => [key, false])), ...(project.release_checklist || {}), artwork: true };
+    const { error: updateError } = await supabase.from("projects").update({ artwork_path: path, release_checklist: checklist }).eq("id", project.id);
+    if (updateError) {
+      await supabase.storage.from("release-artwork").remove([path]);
+      throw updateError;
+    }
+    if (currentProject?.id === project.id) {
+      currentProject.artwork_path = path;
+      currentProject.release_checklist = checklist;
+      renderProjects();
+      await refreshArtworkPreview();
+    }
+    if (oldPath) await supabase.storage.from("release-artwork").remove([oldPath]);
+    showToast("Release artwork uploaded.");
+  } catch (error) {
+    showError("Could not upload release artwork.", error);
+  } finally {
+    artworkBusy = false;
+    input.value = "";
+  }
+});
+document.querySelector("#remove-release-artwork").addEventListener("click", async () => {
+  if (!currentProject || !currentProject.artwork_path || artworkBusy) return;
+  const project = currentProject;
+  const oldPath = project.artwork_path;
+  const checklist = { ...Object.fromEntries(releaseChecklistItems.map(([key]) => [key, false])), ...(project.release_checklist || {}), artwork: false };
+  artworkBusy = true;
+  try {
+    const { error } = await supabase.from("projects").update({ artwork_path: null, release_checklist: checklist }).eq("id", project.id);
+    if (error) throw error;
+    if (currentProject?.id === project.id) {
+      currentProject.artwork_path = null;
+      currentProject.release_checklist = checklist;
+      renderProjects();
+    }
+    const { error: removeError } = await supabase.storage.from("release-artwork").remove([oldPath]);
+    if (removeError) showError("Artwork was removed from the project, but its stored file could not be deleted.", removeError);
+    else showToast("Release artwork removed.");
+  } catch (error) {
+    showError("Could not remove release artwork.", error);
+  } finally {
+    artworkBusy = false;
   }
 });
 function openSongDetails(songId) {

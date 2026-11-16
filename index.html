@@ -73,6 +73,17 @@
             <button class="progress-stat release-date-stat last-stat" id="edit-release-date" type="button"><span class="stat-icon date-stat" aria-hidden="true">◷</span><span class="release-date-copy"><strong id="release-date-value">Not set</strong><small>release date</small></span></button>
           </section>
 
+          <section class="release-section" aria-labelledby="release-checklist-title">
+            <div class="release-checklist-panel">
+              <div class="release-section-heading"><div><span class="dialog-kicker">GETTING IT OUT THERE</span><h2 id="release-checklist-title">Release checklist</h2></div><span class="release-checklist-count" id="release-checklist-count">0/6</span></div>
+              <div class="release-checklist-list" id="release-checklist-list"></div>
+            </div>
+            <aside class="release-artwork-panel" aria-label="Release artwork">
+              <div class="release-artwork-preview"><img id="release-artwork-image" alt="Release artwork preview" hidden /><span id="release-artwork-placeholder">Artwork preview</span></div>
+              <div class="release-artwork-actions"><label class="add-song-button upload-artwork-button" for="release-artwork-input">Upload artwork</label><input id="release-artwork-input" type="file" accept="image/jpeg,image/png,image/webp" hidden /><button class="cancel-button" id="remove-release-artwork" type="button" hidden>Remove</button><small>JPG, PNG, or WebP · up to 10 MB</small></div>
+            </aside>
+          </section>
+
           <section class="board-section" aria-labelledby="board-title">
             <div class="board-toolbar">
               <div class="board-title-group"><div class="board-heading"><h2 id="board-title">Recording board</h2><span class="board-count" id="board-song-count">0 songs</span></div></div>
